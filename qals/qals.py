@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import time
 import numpy as np
-from QA4QUBO.matrix import generate_chimera, generate_pegasus
-from QA4QUBO.script import annealer, hybrid
+from qals.utils import generate_chimera_topology, generate_pegasus_topology
+from qals.solvers import annealer, hybrid
 from dwave.system.samplers import DWaveSampler
 from dwave.system import LeapHybridSampler
 import datetime
@@ -10,22 +10,25 @@ import neal
 import sys
 import csv
 from random import SystemRandom
-from QA4QUBO.colors import colors
-from dwave.system.composites.embedding import EmbeddingComposite
+from qals.colors import colors
+
 random = SystemRandom()
-np.set_printoptions(linewidth=np.inf,threshold=sys.maxsize)
+np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
 
 
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
 
+
 def make_decision(probability):
     return random.random() < probability
+
 
 def random_shuffle(a):
     keys = list(a.keys())
     values = list(a.values())
     random.shuffle(values)
+
     return dict(zip(keys, values))
 
 
@@ -36,19 +39,19 @@ def shuffle_vector(v):
         j = random.randint(0,i) 
         v[i], v[j] = v[j], v[i]
 
+
 def shuffle_map(m):
-    
     keys = list(m.keys())
     shuffle_vector(keys)
     
     i = 0
-
     for key, item in m.items():
         it = keys[i]
         ts = item
         m[key] = m[it]
         m[it] = ts
         i += 1
+
 
 def fill(m, perm, _n):
     n = len(perm)
@@ -85,14 +88,14 @@ def map_back(z, perm):
         z_ret[i] = int(z[inverted[i]])
 
     return z_ret
-     
+
+
 def g(Q, A, oldperm, p, sim):
     n = len(Q)
     m = dict()
     for i in range(n):
         if make_decision(p):
             m[i] = i
-    
 
     m = random_shuffle(m)
     perm = fill(m, oldperm, n)
@@ -115,6 +118,7 @@ def g(Q, A, oldperm, p, sim):
               
     return Theta, perm
 
+
 def h(vect, pr):
     n = len(vect)
 
@@ -124,10 +128,12 @@ def h(vect, pr):
 
     return vect
 
-def write(dir, string):
-    file = open(dir, 'a')
-    file.write(string+'\n')
-    file.close()
+
+# def write(dir, string):
+#     file = open(dir, 'a')
+#     file.write(string+'\n')
+#     file.close()
+
 
 def get_active(sampler, n):
     nodes = dict()
@@ -155,24 +161,26 @@ def get_active(sampler, n):
     return nodes
 
 
-def counter(vector):
-    count = 0
-    for i in range(len(vector)):
-        if vector[i]:
-            count += 1
-    
-    return count
+# def counter(vector):
+#     count = 0
+#     for i in range(len(vector)):
+#         if vector[i]:
+#             count += 1
+#
+#     return count
+
 
 def csv_write(DIR, l):
     with open(DIR, 'a') as file:
         writer = csv.writer(file)
         writer.writerow(l)
 
+
 def now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
-def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, Q, log_DIR, sim):
-    
+
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, Q, log_DIR, sim):
     try:
         if (not sim):
             print(now()+" ["+colors.BOLD+colors.OKGREEN+"LOG"+colors.ENDC+"] "+colors.HEADER+"Started Algorithm in Quantum Mode"+colors.ENDC)
@@ -190,12 +198,12 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
                     n = int(input(
                         now()+" ["+colors.WARNING+colors.BOLD+"WARNING"+colors.ENDC+f"] {n} inserted value is bigger than max topology size (2048), please insert a valid n or press any key to exit: "))
                 try:
-                    A = generate_chimera(n)
+                    A = generate_chimera_topology(n)
                 except:
                     exit()
             else:
                 print(now()+" ["+colors.BOLD+colors.OKGREEN+"LOG"+colors.ENDC+"] "+colors.HEADER+"Using Pegasus Topology \n"+colors.ENDC)
-                A = generate_pegasus(n)
+                A = generate_pegasus_topology(n)
 
         print(now()+" ["+colors.BOLD+colors.OKGREEN+"DATA IN"+colors.ENDC+"] dmin = "+str(d_min)+" - eta = "+str(eta)+" - imax = "+str(i_max)+" - k = "+str(k)+" - lambda 0 = "+str(lambda_zero)+" - n = "+str(n) + " - N = "+str(N) + " - Nmax = "+str(N_max)+" - pdelta = "+str(p_delta)+" - q = "+str(q)+"\n")
         
@@ -231,9 +239,7 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         if (f_one != f_two):
             S = (np.outer(z_prime, z_prime) - I) + np.diagflat(z_prime)
         else:
-            S = np.zeros((n,n))
-            
-
+            S = np.zeros((n, n))
     except KeyboardInterrupt:
         exit("\n\n["+colors.BOLD+colors.OKGREEN+"KeyboardInterrupt"+colors.ENDC+"] Closing program...")
 
@@ -251,8 +257,7 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         else:
             string = "Not yet available"
         
-        print(now()+" ["+colors.BOLD+colors.OKGREEN+"PRG"+colors.ENDC+f"] Cycle {i}/{i_max} -- {round((((i-1)/i_max)*100), 2)}% -- ETA {string}") 
-        
+        print(now()+" ["+colors.BOLD+colors.OKGREEN+"PRG"+colors.ENDC+f"] Cycle {i}/{i_max} -- {round((((i-1)/i_max)*100), 2)}% -- ETA {string}")
 
         try:
             Q_prime = np.add(Q, (np.multiply(lam, S)))
@@ -292,7 +297,6 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
                 lam = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
             else:
                 e = e + 1
-
             
             converted = datetime.timedelta(seconds=(time.time()-start_time))
 

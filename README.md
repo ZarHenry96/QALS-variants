@@ -6,5 +6,5 @@ To start the program run *start.py* script and follow instructions on terminal.
 
 In order to change hyperparameters open file *start.py* and change them in line 154, future updates will provide *csv* file hyperparameters.
 
-If you want to add QAP problems just add them in QA4QUBO/qap folder.
+If you want to add QAP problems just add them in qap folder.
 

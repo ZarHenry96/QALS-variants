@@ -10,20 +10,21 @@
 #
 import itertools
 import time
-import os
+# import os
 import csv
 import numpy as np
-import sys
+# import sys
 from datetime import datetime, timedelta
-from QA4QUBO.colors import colors
-from QA4QUBO.script import annealer, hybrid
+from qals.colors import colors
+from qals.solvers import annealer, hybrid
 from dwave.system.samplers import DWaveSampler           
 from dwave.system.composites import EmbeddingComposite   
-import neal
+# import neal
 from dwave.system import LeapHybridSampler
 import pandas as pd
 from random import SystemRandom
 random = SystemRandom()
+
 
 def add_cost_objective(distance_matrix, cost_constant, qubo_dict):
     n = len(distance_matrix)
@@ -35,6 +36,7 @@ def add_cost_objective(distance_matrix, cost_constant, qubo_dict):
                 qubit_a = t * n + i
                 qubit_b = (t + 1)%n * n + j
                 qubo_dict[(qubit_a, qubit_b)] = cost_constant * distance_matrix[i][j]
+
 
 def add_time_constraints(distance_matrix, constraint_constant, qubo_dict):
     n = len(distance_matrix)
@@ -50,6 +52,7 @@ def add_time_constraints(distance_matrix, constraint_constant, qubo_dict):
                 if i!=j:
                     qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
 
+
 def add_position_constraints(distance_matrix, constraint_constant, qubo_dict):
     n = len(distance_matrix)
     for i in range(n):
@@ -63,6 +66,7 @@ def add_position_constraints(distance_matrix, constraint_constant, qubo_dict):
                 qubit_b = t2 * n + i
                 if t1!=t2:
                     qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
+
 
 def solve_tsp_brute_force(nodes_array):
     number_of_nodes = len(nodes_array)
@@ -80,13 +84,16 @@ def solve_tsp_brute_force(nodes_array):
     
     return np.array(best_permutation), round(best_cost, 2), time.time()-start
 
+
 def solve_tsp(qubo_dict, k):  
     response = annealer(qubo_dict, EmbeddingComposite(DWaveSampler()), k)            
     return np.array(response)
 
+
 def hybrid_tsp(qubo_dict):   
     response = hybrid(qubo_dict, LeapHybridSampler())          
     return np.array(response)
+
 
 def advance(iter, rnd):
     iterator = next(iter)
@@ -94,8 +101,8 @@ def advance(iter, rnd):
         iterator = next(iter, iterator)
     return iterator
 
+
 def fix_solution(response, validate):
-    
     n = int(np.sqrt(len(response)))
     solution = np.array(n)
     raw = dict()
@@ -170,6 +177,7 @@ def fix_solution(response, validate):
 
     return solution
 
+
 def calculate_cost(cost_matrix, solution):
     cost = 0
     for i in range(len(solution)):
@@ -179,6 +187,7 @@ def calculate_cost(cost_matrix, solution):
 
     return cost
 
+
 def binary_state_to_points_order(binary_state):
     points_order = []
     number_of_points = int(np.sqrt(len(binary_state)))
@@ -187,6 +196,7 @@ def binary_state_to_points_order(binary_state):
             if binary_state[(number_of_points) * p + j] == 1:
                 points_order.append(j)
     return points_order
+
 
 def create_nodes_array(N):
     nodes_list = []
@@ -208,13 +218,16 @@ def get_tsp_matrix(nodes_array):
 def distance(point_A, point_B):
     return np.sqrt((point_A[0] - point_B[0])**2 + (point_A[1] - point_B[1])**2)
 
+
 def csv_write(DIR, l):
     with open(DIR, 'a') as file:
         writer = csv.writer(file)
         writer.writerow(l)
 
+
 def now():
     return datetime.now().strftime("%H:%M:%S")
+
 
 def get_nodes(n,DIR):
     nodes_array = 0
@@ -226,6 +239,7 @@ def get_nodes(n,DIR):
         pd.DataFrame(data=nodes_array, columns=["x", "y"]).to_csv(DIR,index=False)
 
     return nodes_array
+
 
 def write_TSP_csv(df, dictionary):
     #"Solution", "Cost", "Fixed solution", "Fixed cost", "Response time", "Total time", "Response"
@@ -239,9 +253,7 @@ def write_TSP_csv(df, dictionary):
     df['Response'][dictionary['type']] = dictionary['response']
 
 
-
 def tsp(n, DIR, DATA, df, bruteforce=True, DWave=True, Hybrid=True):
-    
     print("\t\t"+colors.BOLD+colors.HEADER+"TSP PROBLEM SOLVER..."+colors.ENDC)
     
     columns = ["Type", "solution", "cost", "fixed solution", "fixed cost", "response time", "total time", "response"]
@@ -315,7 +327,4 @@ def tsp(n, DIR, DATA, df, bruteforce=True, DWave=True, Hybrid=True):
         
     print("\n\t"+colors.BOLD+colors.HEADER+"   TSP PROBLEM SOLVER END"+colors.ENDC)
     
-    
     return tsp_matrix, qubo
-
-
