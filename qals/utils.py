@@ -2,8 +2,10 @@
 import dwave_networkx as dnx
 import networkx as nx
 import numpy as np
-from random import SystemRandom
-random = SystemRandom()
+import random
+
+# from random import SystemRandom
+# random = SystemRandom()
 
 
 # def tsp(n):

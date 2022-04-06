@@ -22,14 +22,16 @@ from dwave.system.composites import EmbeddingComposite
 # import neal
 from dwave.system import LeapHybridSampler
 import pandas as pd
-from random import SystemRandom
-random = SystemRandom()
+import random
+# from random import SystemRandom
+# random = SystemRandom()
 
 
 def create_nodes_array(N):
     nodes_list = []
     for i in range(N):
-        nodes_list.append(np.random.rand(2) * 10)
+        nodes_list.append(np.array([random.random() for _ in range(0, 2)]) * 10)
+        # nodes_list.append(np.random.rand(2) * 10)
     return np.array(nodes_list)
 
 

@@ -12,6 +12,7 @@ from os.path import isfile, join
 import sys
 import numpy as np
 import csv
+import random
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -116,6 +117,9 @@ def convert_to_numpy_Q(qubo, n):
 
 
 def main(config):
+    makedirs(config['out_dir'], exist_ok=True)
+    random.seed(config['random_seed'])
+
     print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
     pr = input(Colors.OKCYAN + "Which problem would you like to run? (NPP, QAP, TSP)  " + Colors.ENDC)
     if pr == "NPP":
@@ -239,7 +243,5 @@ if __name__ == '__main__':
 
     with open(args.config_file) as cf:
         config = json.load(cf)
-
-    makedirs(config['out_dir'], exist_ok=True)
 
     main(config)

@@ -1,5 +1,6 @@
 import time
 
+
 def annealer(theta, sampler, k, print_time=False):
     if print_time:
         start = time.time()
