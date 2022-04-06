@@ -49,14 +49,14 @@ def select_qap_problem():
     return DIR, qap_files[problem]
 
 
-def generate_npp_file(_n: int):
+def generate_npp_file(_n: int, out_dir):
     not_ok = True
     i = 0
     max_range = 100000
     _dir = "NPP_"+str(_n)+"_"+str(max_range)
     while(not_ok):
         try:
-            with open("outputs/"+_dir.replace("NPP", "NPP_LOG")+".csv", "r") as file:
+            with open(out_dir+"/"+_dir.replace("NPP", "NPP_LOG")+".csv", "r") as file:
                 pass
             max_range = int(max_range/10)
             if (max_range < 10):
@@ -66,43 +66,43 @@ def generate_npp_file(_n: int):
         except FileNotFoundError:
             not_ok = False
         
-    DIR = "outputs/"+_dir
+    DIR = out_dir+"/"+_dir
 
     return DIR, max_range
 
 
-def generate_qap_file(name):
+def generate_qap_file(name, out_dir):
     not_ok = True
     i = 0
     _dir = "QAP_" + str(name)
     while (not_ok):
         try:
-            with open("outputs/" + _dir + ".csv", "r") as _:
+            with open(out_dir+"/" + _dir + ".csv", "r") as _:
                 pass
             i += 1
             _dir = "QAP_" + str(name) + "_" + str(i)
         except FileNotFoundError:
             not_ok = False
 
-    DIR = "outputs/" + _dir
+    DIR = out_dir+"/"+_dir
 
     return DIR
 
 
-def generate_tsp_file(n: int):
+def generate_tsp_file(n: int, out_dir):
     not_ok = True
     i = 1
     _dir = "TSP_"+str(n)+"_"+str(i)
     while(not_ok):
         try:
-            with open("outputs/"+_dir.replace("TSP", "TSP_LOG")+".csv", "r") as _:
+            with open(out_dir+"/"+_dir.replace("TSP", "TSP_LOG")+".csv", "r") as _:
                 pass
             i += 1
             _dir = "TSP_"+str(n)+"_"+str(i)
         except FileNotFoundError:
             not_ok = False
         
-    DIR = "outputs/"+_dir
+    DIR = out_dir+"/"+_dir
 
     return DIR
 
@@ -139,7 +139,7 @@ def main(config):
         nn = int(input("Insert n: "))
         while nn <= 0:
             nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
-        _DIR, max_range = generate_npp_file(nn)
+        _DIR, max_range = generate_npp_file(nn, config['out_dir'])
         S = utils.generate_S(nn, max_range)
         _Q, c = utils.generate_NPP_QUBO_problem(S)
         log_DIR = _DIR.replace("NPP", "NPP_LOG") + ".csv"
@@ -147,13 +147,13 @@ def main(config):
         _dir, name = select_qap_problem()
         _Q, penalty, nn, y = utils.generate_QAP_QUBO_problem(_dir)
         name = name.replace(".txt", "")
-        _DIR = generate_qap_file(name)
+        _DIR = generate_qap_file(name, config['out_dir'])
         log_DIR = _DIR.replace("QAP", "QAP_LOG") + ".csv"
     elif TSP:
         nn = int(input("Insert n: "))
         while nn <= 0 or nn > 12:
             nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
-        _DIR = generate_tsp_file(nn)
+        _DIR = generate_tsp_file(nn, config['out_dir'])
         log_DIR = _DIR.replace("TSP", "TSP_LOG") + ".csv"
         csv_write(DIR=log_DIR, l=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
         df = pd.DataFrame(
