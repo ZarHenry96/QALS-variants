@@ -6,9 +6,9 @@ import pandas as pd
 import datetime
 import time
 from qals import utils, qals, tsp_utils
-from qals.colors import colors
+from qals.colors import Colors
 from os import listdir, makedirs, system, name
-from os.path import isfile, join, exists
+from os.path import isfile, join
 import sys
 import numpy as np
 import csv
@@ -17,7 +17,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 def log_write(tpe, var):
-    return "["+colors.BOLD+str(tpe)+colors.ENDC+"]\t"+str(var)+"\n"
+    return "[" + Colors.BOLD + str(tpe) + Colors.ENDC + "]\t" + str(var) + "\n"
 
 
 # def write(dir, string):
@@ -116,8 +116,8 @@ def convert_to_numpy_Q(qubo, n):
 
 
 def main(config):
-    print("\t\t"+colors.BOLD+colors.WARNING+"  BUILDING PROBLEM..."+colors.ENDC)
-    pr = input(colors.OKCYAN+"Which problem would you like to run? (NPP, QAP, TSP)  "+colors.ENDC)
+    print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
+    pr = input(Colors.OKCYAN + "Which problem would you like to run? (NPP, QAP, TSP)  " + Colors.ENDC)
     if pr == "NPP":
         NPP = True
         QAP = False
@@ -132,13 +132,13 @@ def main(config):
         TSP = True
     else:
         NPP, QAP, TSP = False, False, False
-        print("["+colors.FAIL+"ERROR"+colors.ENDC+"] string "+colors.BOLD+pr+colors.ENDC+" is not valid, exiting...")
+        print("[" + Colors.FAIL + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + pr + Colors.ENDC + " is not valid, exiting...")
         exit(2)
 
     if NPP:
         nn = int(input("Insert n: "))
         while nn <= 0:
-            nn = int(input("[" + colors.FAIL + colors.BOLD + "Invalid n" + colors.ENDC + "] Insert n: "))
+            nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
         _DIR, max_range = generate_npp_file(nn)
         S = utils.generate_S(nn, max_range)
         _Q, c = utils.generate_NPP_QUBO_problem(S)
@@ -152,7 +152,7 @@ def main(config):
     elif TSP:
         nn = int(input("Insert n: "))
         while nn <= 0 or nn > 12:
-            nn = int(input("["+colors.FAIL+colors.BOLD+"Invalid n"+colors.ENDC+"] Insert n: "))
+            nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
         _DIR = generate_tsp_file(nn)
         log_DIR = _DIR.replace("TSP", "TSP_LOG") + ".csv"
         csv_write(DIR=log_DIR, l=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
@@ -163,11 +163,11 @@ def main(config):
         tsp_matrix, qubo = tsp_utils.tsp(nn, _DIR + "_solution.csv", _DIR[:-1] + "DATA.csv", df)
         _Q = convert_to_numpy_Q(qubo, nn**2)
     
-    print("\t\t"+colors.BOLD+colors.OKGREEN+"   PROBLEM BUILDED"+colors.ENDC+"\n\n\t\t"+colors.BOLD+colors.OKGREEN +
-          "   START ALGORITHM"+colors.ENDC+"\n")
+    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" + Colors.BOLD + Colors.OKGREEN +
+          "   START ALGORITHM" + Colors.ENDC + "\n")
     
     if NPP:
-        print("["+colors.BOLD+colors.OKCYAN+"S"+colors.ENDC+f"] {S}")
+        print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")
 
     start = time.time()
     z, r_time = qals.run(d_min=70, eta=0.01, i_max=10, k=1, lambda_zero=3 / 2,
@@ -176,7 +176,7 @@ def main(config):
     conv = datetime.timedelta(seconds=int(time.time() - start))
 
     min_z = qals.function_f(_Q, z).item()
-    print("\t\t\t"+colors.BOLD+colors.OKGREEN+"RESULTS"+colors.ENDC+"\n")
+    print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     string = str()
     if nn < 16:
         string += log_write("Z", z)
@@ -210,9 +210,9 @@ def main(config):
             else:
                 fix_sol.append(where)
         if not valid:
-            string += "["+colors.BOLD+colors.FAIL+"ERROR"+colors.ENDC+"] Result is not valid.\n"
+            string += "[" + Colors.BOLD + Colors.FAIL + "ERROR" + Colors.ENDC + "] Result is not valid.\n"
             DW['fixsol'] = list(tsp_utils.fix_solution(z, True))
-            string += "["+colors.BOLD+colors.WARNING+"VALID"+colors.ENDC+"] Validation occurred \n"
+            string += "[" + Colors.BOLD + Colors.WARNING + "VALID" + Colors.ENDC + "] Validation occurred \n"
         else:
             DW['fixsol'] = []
 
