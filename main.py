@@ -48,7 +48,7 @@ def generate_npp_file(_n: int, max_range, out_dir):
     not_ok = True
     i = 0
     _dir = "NPP_"+str(_n)+"_"+str(max_range)
-    while(not_ok):
+    while (not_ok):
         try:
             with open(out_dir+"/"+_dir.replace("NPP", "NPP_LOG")+".csv", "r") as file:
                 pass
@@ -87,7 +87,7 @@ def generate_tsp_file(n: int, out_dir):
     not_ok = True
     i = 1
     _dir = "TSP_"+str(n)+"_"+str(i)
-    while(not_ok):
+    while (not_ok):
         try:
             with open(out_dir+"/"+_dir.replace("TSP", "TSP_LOG")+".csv", "r") as _:
                 pass
@@ -112,6 +112,7 @@ def convert_to_numpy_Q(qubo, n):
 def main(config):
     makedirs(config['out_dir'], exist_ok=True)
     random.seed(config['random_seed'])
+    qals_config = config['qals_params']
 
     print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
     pr = input(Colors.OKCYAN + "Which problem would you like to run? (NPP, QAP, TSP)  " + Colors.ENDC)
@@ -172,11 +173,11 @@ def main(config):
         print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")
 
     start = time.time()
-    z, r_time = qals.run(d_min=config['d_min'], eta=config['eta'], i_max=config['i_max'], k=config['k'],
-                         lambda_zero=config['lambda_zero'], n=nn if NPP or QAP else nn ** 2,
-                         N=config['N'], N_max=config['N_max'], p_delta=config['p_delta'], q=config['q'],
-                         Q=_Q, topology=config['topology'], log_DIR=log_DIR, tabu_type=config['tabu_type'],
-                         sim=config['simulated_annealing'])
+    z, r_time = qals.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
+                         k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=nn if NPP or QAP else nn ** 2,
+                         N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
+                         q=qals_config['q'], Q=_Q, topology=config['topology'], log_DIR=log_DIR,
+                         tabu_type=config['tabu_type'], sim=config['simulated_annealing'])
     conv = datetime.timedelta(seconds=int(time.time() - start))
 
     min_z = qals.function_f(_Q, z).item()
@@ -239,7 +240,7 @@ if __name__ == '__main__':
                         help='file (.json) containing the configuration for the experiment')
     args = parser.parse_args()
 
-    system('cls' if name == 'nt' else 'clear')
+    # system('cls' if name == 'nt' else 'clear')
 
     with open(args.config_file) as cf:
         config = json.load(cf)
