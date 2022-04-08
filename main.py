@@ -21,12 +21,6 @@ def log_write(tpe, var):
     return "[" + Colors.BOLD + str(tpe) + Colors.ENDC + "]\t" + str(var) + "\n"
 
 
-# def write(dir, string):
-#     file = open(dir, 'a')
-#     file.write(string+'\n')
-#     file.close()
-
-
 def csv_write(DIR, l):
     with open(DIR, 'a') as file:
         writer = csv.writer(file)
@@ -50,10 +44,9 @@ def select_qap_problem():
     return DIR, qap_files[problem]
 
 
-def generate_npp_file(_n: int, out_dir):
+def generate_npp_file(_n: int, max_range, out_dir):
     not_ok = True
     i = 0
-    max_range = 100000
     _dir = "NPP_"+str(_n)+"_"+str(max_range)
     while(not_ok):
         try:
@@ -69,7 +62,7 @@ def generate_npp_file(_n: int, out_dir):
         
     DIR = out_dir+"/"+_dir
 
-    return DIR, max_range
+    return DIR
 
 
 def generate_qap_file(name, out_dir):
@@ -136,14 +129,19 @@ def main(config):
         TSP = True
     else:
         NPP, QAP, TSP = False, False, False
-        print("[" + Colors.FAIL + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + pr + Colors.ENDC + " is not valid, exiting...")
+        print("[" + Colors.FAIL + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + pr + Colors.ENDC
+              + " is not valid, exiting...")
         exit(2)
 
     if NPP:
         nn = int(input("Insert n: "))
         while nn <= 0:
             nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
-        _DIR, max_range = generate_npp_file(nn, config['out_dir'])
+        max_range = int(input("Insert the upper limit of the generation interval: "))
+        while max_range <= 0:
+            max_range = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid value" + Colors.ENDC
+                                  + "] Insert the upper limit of the generation interval: "))
+        _DIR = generate_npp_file(nn, max_range, config['out_dir'])
         S = utils.generate_S(nn, max_range)
         _Q, c = utils.generate_NPP_QUBO_problem(S)
         log_DIR = _DIR.replace("NPP", "NPP_LOG") + ".csv"
@@ -167,16 +165,18 @@ def main(config):
         tsp_matrix, qubo = tsp_utils.tsp(nn, _DIR + "_solution.csv", _DIR[:-1] + "DATA.csv", df)
         _Q = convert_to_numpy_Q(qubo, nn**2)
     
-    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" + Colors.BOLD + Colors.OKGREEN +
-          "   START ALGORITHM" + Colors.ENDC + "\n")
+    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" +
+          Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
     
     if NPP:
         print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")
 
     start = time.time()
-    z, r_time = qals.run(d_min=70, eta=0.01, i_max=10, k=1, lambda_zero=3 / 2,
-                         n=nn if NPP or QAP else nn ** 2, N=10, N_max=100, p_delta=0.1, q=0.2,
-                         topology='pegasus', Q=_Q, log_DIR=log_DIR, sim=False)
+    z, r_time = qals.run(d_min=config['d_min'], eta=config['eta'], i_max=config['i_max'], k=config['k'],
+                         lambda_zero=config['lambda_zero'], n=nn if NPP or QAP else nn ** 2,
+                         N=config['N'], N_max=config['N_max'], p_delta=config['p_delta'], q=config['q'],
+                         Q=_Q, topology=config['topology'], log_DIR=log_DIR, tabu_type=config['tabu_type'],
+                         sim=config['simulated_annealing'])
     conv = datetime.timedelta(seconds=int(time.time() - start))
 
     min_z = qals.function_f(_Q, z).item()

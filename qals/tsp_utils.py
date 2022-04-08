@@ -10,28 +10,22 @@
 #
 import itertools
 import time
-# import os
-import csv
 import numpy as np
-# import sys
 from datetime import datetime, timedelta
 from qals.colors import Colors
 from qals.solvers import annealer, hybrid
 from dwave.system.samplers import DWaveSampler           
-from dwave.system.composites import EmbeddingComposite   
-# import neal
+from dwave.system.composites import EmbeddingComposite
 from dwave.system import LeapHybridSampler
 import pandas as pd
 import random
-# from random import SystemRandom
-# random = SystemRandom()
 
 
 def create_nodes_array(N):
     nodes_list = []
     for i in range(N):
         nodes_list.append(np.array([random.random() for _ in range(0, 2)]) * 10)
-        # nodes_list.append(np.random.rand(2) * 10)
+
     return np.array(nodes_list)
 
 
@@ -53,7 +47,7 @@ def distance(point_A, point_B):
 
 def get_tsp_matrix(nodes_array):
     n = len(nodes_array)
-    matrix = np.zeros((n,n))
+    matrix = np.zeros((n, n))
     for i in range(n):
         for j in range(i, n):
             matrix[i][j] = distance(nodes_array[i], nodes_array[j])
@@ -159,7 +153,7 @@ def advance(iter, rnd):
 
 def fix_solution(response, validate):
     n = int(np.sqrt(len(response)))
-    solution = np.array(n)
+    # solution = np.array(n)
     raw = dict()
     for i in range(n):
         raw[i] = list()
@@ -233,12 +227,6 @@ def fix_solution(response, validate):
     return solution
 
 
-# def csv_write(DIR, l):
-#     with open(DIR, 'a') as file:
-#         writer = csv.writer(file)
-#         writer.writerow(l)
-
-
 def write_TSP_csv(df, dictionary):
     # "Solution", "Cost", "Fixed solution", "Fixed cost", "Response time", "Total time", "Response"
     
@@ -258,7 +246,7 @@ def now():
 def tsp(n, DIR, DATA, df, bruteforce=True, DWave=True, Hybrid=True):
     print("\t\t" + Colors.BOLD + Colors.HEADER + "TSP PROBLEM SOLVER..." + Colors.ENDC)
     
-    columns = ["Type", "solution", "cost", "fixed solution", "fixed cost", "response time", "total time", "response"]
+    # columns = ["Type", "solution", "cost", "fixed solution", "fixed cost", "response time", "total time", "response"]
     
     qubo = dict()
     nodes_array = get_nodes(n, DATA)
