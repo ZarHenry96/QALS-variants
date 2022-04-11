@@ -13,7 +13,7 @@ import time
 import numpy as np
 from datetime import datetime, timedelta
 from qals.colors import Colors
-from qals.solvers import annealer, hybrid
+from qals.solvers import annealer, hybrid, stub_annealer
 from dwave.system.samplers import DWaveSampler           
 from dwave.system.composites import EmbeddingComposite
 from dwave.system import LeapHybridSampler
@@ -314,8 +314,8 @@ def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
 
         start_hy = time.time()
         hy['response'] = solve_tsp_hybrid(qubo)
-        hy['rtime'] = timedelta(seconds=int(time.time()-start_qa)) if int(time.time()-start_qa) > 0 \
-            else time.time()-start_qa
+        hy['rtime'] = timedelta(seconds=int(time.time()-start_qa)) if int(time.time()-start_hy) > 0 \
+            else time.time()-start_hy
 
         hy['sol'] = binary_state_to_points_order(hy['response'])
         hy['cost'] = round(calculate_cost(tsp_matrix, hy['sol']), 2)

@@ -2,7 +2,7 @@
 import time
 import numpy as np
 from qals.utils import generate_chimera_topology, generate_pegasus_topology
-from qals.solvers import annealer
+from qals.solvers import annealer, hybrid, stub_annealer
 from dwave.system.samplers import DWaveSampler
 import datetime
 import neal

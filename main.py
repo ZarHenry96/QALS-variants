@@ -32,7 +32,7 @@ def select_qap_problem():
     qap_files = [f for f in listdir("QAP/") if isfile(join("QAP/", f))]
 
     for i, element in enumerate(qap_files):
-        print(f"Write {i} for the problem {element.rsplit('.')[0]}")
+        print(f"\tWrite {i} for the problem {element.rsplit('.')[0]}")
     
     problem = int(input("Which problem do you want to solve? "))
     filepath = "QAP/"+qap_files[problem]
@@ -81,7 +81,7 @@ def main(config):
         S = utils.generate_S(n, max_range)
         Q, c = utils.generate_NPP_QUBO_problem(S)
 
-        out_dir = os.path.join(config['out_dir'], 'NPP', f'{n}_{max_range}',
+        out_dir = os.path.join(config['out_dir'], 'NPP', f'n_{n}_range_{max_range}',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         csv_log_file = os.path.join(out_dir, f'npp_{n}_{max_range}_log.csv')
@@ -100,7 +100,7 @@ def main(config):
                           + "] Insert n (number of cities, allowed range [0, 11]): "))
         qubo_size = n ** 2
 
-        out_dir = os.path.join(config['out_dir'], 'TSP', f'{n}',
+        out_dir = os.path.join(config['out_dir'], 'TSP', f'n_{n}',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         csv_log_file = os.path.join(out_dir, f'tsp_{n}_log.csv')
@@ -143,14 +143,16 @@ def main(config):
         diff_squared = (c**2 + 4*min_z)
         string += log_write("c", c) + log_write("C", c**2) + log_write("DIFF", round(diff_squared, 2)) + \
             log_write("diff", np.sqrt(diff_squared))
-        csv_write(csv_file=csv_log_file + "_solution.csv", row=["c", "c**2", "diff**2", "diff", "S", "z", "Q"])
-        csv_write(csv_file=csv_log_file + "_solution.csv", row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S, z,
+
+        solution_file = os.path.join(out_dir, f'npp_{n}_{max_range}_solution.csv')
+        csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z", "Q"])
+        csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S, z,
                                                          Q if n < 5 else "too big"])
     elif qap:
         string += log_write("y", y) + log_write("Penalty", penalty) + log_write("Difference", round(y+min_z, 2))
-        csv_write(csv_file=csv_log_file + "_solution.csv", row=["problem", "y", "penalty", "difference (y+minimum)",
-                                                                "z", "Q"])
-        csv_write(csv_file=csv_log_file + "_solution.csv", row=[name, y, penalty, y + min_z, np.atleast_2d(z).T, Q])
+        solution_file = os.path.join(out_dir, f'qap_{problem_name}_solution.csv')
+        csv_write(csv_file=solution_file, row=["problem", "y", "penalty", "difference (y+minimum)", "z", "Q"])
+        csv_write(csv_file=solution_file, row=[problem_name, y, penalty, y + min_z, np.atleast_2d(z).T, Q])
     else:
         dw = dict()
         dw['type'] = 'QALS'
@@ -184,7 +186,7 @@ def main(config):
         dw['ttime'] = total_timedelta
 
         tsp_utils.add_TSP_info_to_df(df, dw)
-        df.to_csvos.path.join(out_dir, f'tsp_{n}_solution.csv')
+        df.to_csv(os.path.join(out_dir, f'tsp_{n}_solution.csv'))
     
     print(string)
 
