@@ -38,9 +38,9 @@ def get_active(sampler, n):
             nodes[node_1].append(node_2)
             nodes[node_2].append(node_1)
 
-    if(len(nodes) != n):
+    if (len(nodes) != n):
         i = 1
-        while(len(nodes) != n):
+        while (len(nodes) != n):
             nodes[tmp[n+i]] = list()
 
     return nodes
@@ -50,9 +50,9 @@ def make_decision(probability):
     return random.random() < probability
 
 
-def random_shuffle(a):
-    keys = list(a.keys())
-    values = list(a.values())
+def random_shuffle(dictionary):
+    keys = list(dictionary.keys())
+    values = list(dictionary.values())
     random.shuffle(values)
 
     return dict(zip(keys, values))
@@ -62,6 +62,7 @@ def fill(m, perm, _n):
     n = len(perm)
     if (n != _n):
         n = _n
+
     filled = np.zeros(n, dtype=int)
     for i in range(n):
         if i in m.keys():
@@ -72,19 +73,21 @@ def fill(m, perm, _n):
     return filled
 
 
-def inverse(perm, _n):
+def invert(perm, _n):
     n = len(perm)
     if(n != _n):
         n = _n
-    inverted = np.zeros(n, dtype=int)
+
+    inverse = np.zeros(n, dtype=int)
     for i in range(n):
-        inverted[perm[i]] = i
+        inverse[perm[i]] = i
 
-    return inverted
+    return inverse
 
 
-def g(Q, A, oldperm, p, sim):
+def g(Q, A, oldperm, p, simulation):
     n = len(Q)
+
     m = dict()
     for i in range(n):
         if make_decision(p):
@@ -92,21 +95,21 @@ def g(Q, A, oldperm, p, sim):
 
     m = random_shuffle(m)
     perm = fill(m, oldperm, n)
-    inversed = inverse(perm, n)
+    inverse = invert(perm, n)
     
     Theta = dict()
-    if (sim):
+    if (simulation):
         for row, col in A:
-            k = inversed[row]
-            l = inversed[col]
+            k = inverse[row]
+            l = inverse[col]
             Theta[row, col] = Q[k][l]
     else:
         support = dict(zip(A.keys(), np.arange(n))) 
         for key in list(A.keys()):
-            k = inversed[support[key]]
+            k = inverse[support[key]]
             Theta[key, key] = Q[k][k]
             for elem in A[key]:
-                l = inversed[support[elem]]
+                l = inverse[support[elem]]
                 Theta[key, elem] = Q[k][l]
               
     return Theta, perm
@@ -114,7 +117,7 @@ def g(Q, A, oldperm, p, sim):
 
 def map_back(z, perm):
     n = len(z)
-    inverted = inverse(perm, n)
+    inverted = invert(perm, n)
 
     z_ret = np.zeros(n, dtype=int)
 
@@ -124,14 +127,14 @@ def map_back(z, perm):
     return z_ret
 
 
-def h(vect, pr):
-    n = len(vect)
+def h(vector, p):
+    n = len(vector)
 
     for i in range(n):
-        if make_decision(pr):
-            vect[i] = int((vect[i]+1) % 2)
+        if make_decision(p):
+            vector[i] = int((vector[i] + 1) % 2)
 
-    return vect
+    return vector
 
 
 def to_ising(z):
@@ -180,46 +183,58 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     return Q_prime
 
 
-def csv_write(DIR, l):
-    with open(DIR, 'a') as file:
+def csv_write(csv_file, row):
+    with open(csv_file, 'a') as file:
         writer = csv.writer(file)
-        writer.writerow(l)
+        writer.writerow(row)
 
 
 def now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 
-def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, log_DIR, tabu_type, sim):
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, csv_log_file, tabu_type, simulation):
     try:
-        if (not sim):
+        if not simulation:
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
                   + "Started Algorithm in Quantum Mode" + Colors.ENDC)
+
             sampler = DWaveSampler({'topology__type': topology})
+            csv_log_file.replace("TSP_", "TSP_QA_")
+
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                  + "Using Pegasus Topology \n" + Colors.ENDC)
+                  + f"Using {topology} Topology \n" + Colors.ENDC)
+
             A = get_active(sampler, n)
-            log_DIR.replace("TSP_", "TSP_QA_")
         else:
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-                  + "Started Algorithm in Simulation Mode (simulated annealing sampler)" + Colors.ENDC)
+                  + "Started Algorithm in Simulation Mode (simulated annealing sampler on embedded QUBO matrix)"
+                  + Colors.ENDC)
+
             sampler = neal.SimulatedAnnealingSampler()
-            log_DIR.replace("TSP_", "TSP_SA_")
-            if (topology == 'chimera'):
+            csv_log_file.replace("TSP_", "TSP_SA_")
+
+            if topology == 'chimera':
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
                       + "Using Chimera Topology \n" + Colors.ENDC)
-                if (n > 2048):
-                    n = int(input(
-                        now() + " [" + Colors.WARNING + Colors.BOLD + "WARNING" + Colors.ENDC
-                        + f"] {n} inserted value is bigger than max topology size (2048), please insert a valid n "
-                          f"or press any key to exit: "))
-                try:
-                    A = generate_chimera_topology(n)
-                except:
-                    exit()
+
+                if n <= 2048:
+                    try:
+                        A = generate_chimera_topology(n)
+                    except:
+                        print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                              + "] " + f"the required topology could not be generated",
+                              file=sys.stderr)
+                        exit(0)
+                else:
+                    print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                          + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (2048)",
+                          file=sys.stderr)
+                    exit(0)
             else:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
                       + "Using Pegasus Topology \n" + Colors.ENDC)
+
                 A = generate_pegasus_topology(n)
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
@@ -228,19 +243,19 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
               + " - p_delta = " + str(p_delta) + " - q = " + str(q) + "\n")
 
         p = 1
-        Theta_one, m_one = g(Q, A, np.arange(n), p, sim)
-        Theta_two, m_two = g(Q, A, np.arange(n), p, sim)
+        Theta_one, m_one = g(Q, A, np.arange(n), p, simulation)
+        Theta_two, m_two = g(Q, A, np.arange(n), p, simulation)
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
-        start = time.time()
+        start_time = time.time()
         z_one = map_back(annealer(Theta_one, sampler, k), m_one)
-        convert_1 = datetime.timedelta(seconds=(time.time()-start))
-        print("Ended in " + str(convert_1) +"\n" + now() +" [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC
-              + "] Working on z2...", end=' ')
-        start = time.time()
+        timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
+        print("Ended in " + str(timedelta_z_one) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN"
+              + Colors.ENDC + "] Working on z2...", end=' ')
+        start_time = time.time()
         z_two = map_back(annealer(Theta_two, sampler, k), m_two)
-        convert_2 = datetime.timedelta(seconds=(time.time()-start))
-        print("Ended in "+str(convert_2)+"\n")
+        timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
+        print("Ended in "+str(timedelta_z_two)+"\n")
 
         f_one = function_f(Q, z_one).item()
         f_two = function_f(Q, z_two).item()
@@ -265,15 +280,14 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     e = 0
     d = 0
     i = 1
-    lam = lambda_zero
-    sum_time = 0
+    lamda_value = lambda_zero
+    total_time = 0
     
     while True:
         print(f"-------------------------------------------------------------------------------------------------------"
               f"--------")
-        start_time = time.time()
-        if sum_time:
-            string = str(datetime.timedelta(seconds=((sum_time/i) * (i_max - i))))
+        if total_time:
+            string = str(datetime.timedelta(seconds=((total_time/i) * (i_max - i))))
         else:
             string = "Not yet available"
         
@@ -281,23 +295,23 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
               f"] Cycle {i}/{i_max} -- {round((((i - 1) / i_max) * 100), 2)}% -- ETA {string}")
 
         try:
-            Q_prime = sum_Q_and_tabu(Q, S, lam, n, tabu_type)
+            Q_prime = sum_Q_and_tabu(Q, S, lamda_value, n, tabu_type)
             
             if (i % N == 0):
                 p = p - ((p - p_delta)*eta)
 
-            Theta_prime, m = g(Q_prime, A, m_star, p, sim)
+            Theta_prime, m = g(Q_prime, A, m_star, p, simulation)
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
-            start = time.time()
+            start_time = time.time()
             z_prime = map_back(annealer(Theta_prime, sampler, k), m)
-            convert_z = datetime.timedelta(seconds=(time.time()-start))
-            print("Ended in "+str(convert_z))
+            timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
+            print("Ended in "+str(timedelta_z_prime))
 
             if make_decision(q):
                 z_prime = h(z_prime, p)
 
-            if (z_prime != z_star).any() :
+            if (z_prime != z_star).any():
                 f_prime = function_f(Q, z_prime).item()
                 
                 if (f_prime < f_star):
@@ -314,33 +328,33 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                         f_star = f_prime
                         m_star = m
                         e = 0
-                lam = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
+                lamda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
             else:
                 e = e + 1
             
-            converted = datetime.timedelta(seconds=(time.time()-start_time))
+            iteration_timedelta = datetime.timedelta(seconds=(time.time()-start_time))
 
             try:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                       + f"] f_prime = {round(f_prime, 2)}, f_star = {round(f_star, 2)}, p = {p}, e = {e}, d = {d} "
-                        f"and lambda = {round(lam, 5)}\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN
-                      + "DATA" + Colors.ENDC + f"] Took {converted} in total")
-                csv_write(DIR=log_DIR,l=[i, f_prime, f_star, p, e, d, lam, z_prime, z_star])
+                        f"and lambda = {round(lamda_value, 5)}\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN
+                      + "DATA" + Colors.ENDC + f"] Took {iteration_timedelta} in total")
+                csv_write(csv_file=csv_log_file, row=[i, f_prime, f_star, p, e, d, lamda_value, z_prime, z_star])
             except UnboundLocalError:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC +
-                      f" No variations on f and z. p = {p}, e = {e}, d = {d} and lambda = {round(lam, 5)}\n"
+                      f" No variations on f and z. p = {p}, e = {e}, d = {d} and lambda = {round(lamda_value, 5)}\n"
                       + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
-                      + f"] Took {converted} in total")
-                csv_write(DIR=log_DIR,l=[i, "null", f_star, p, e, d, lam, "null", z_star])
+                      + f"] Took {iteration_timedelta} in total")
+                csv_write(csv_file=csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
             
-            sum_time = sum_time + (time.time() - start_time)
+            total_time = total_time + (time.time() - start_time)
 
             print(f"---------------------------------------------------------------------------------------------------"
                   f"------------\n")
-            if ((i == i_max) or ((e + d >= N_max) and (d < d_min))):
-                if(i != i_max):
+            if (i == i_max) or ((e + d >= N_max) and (d < d_min)):
+                if i != i_max:
                     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Exited at cycle "
-                          + str(i) + "/" + str(i_max) + " thanks to convergence.")
+                          + str(i) + "/" + str(i_max) + " due to convergence.")
                 else:
                     print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "END" + Colors.ENDC + "] Exited at cycle "
                           + str(i) + "/" + str(i_max) + "\n")
@@ -350,15 +364,15 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         except KeyboardInterrupt:
             break
 
-    converted = datetime.timedelta(seconds=sum_time)
+    total_timedelta = datetime.timedelta(seconds=total_time)
     if i != 1:
-        conv = datetime.timedelta(seconds=int(sum_time/(i-1)))
+        avg_time = datetime.timedelta(seconds=int(total_time/(i-1)))
     else:
-        conv = datetime.timedelta(seconds=int(sum_time))
+        avg_time = datetime.timedelta(seconds=int(total_time))
     
     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average time for iteration: "
-          + str(conv) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Total time: "
-          + str(converted) + "\n")
+          + str(avg_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Total time: "
+          + str(total_timedelta) + "\n")
 
-    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], conv
+    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_time
 

@@ -3,6 +3,7 @@
 import argparse
 import json
 import pandas as pd
+import os
 import datetime
 import time
 from qals import utils, qals, tsp_utils
@@ -21,90 +22,28 @@ def log_write(tpe, var):
     return "[" + Colors.BOLD + str(tpe) + Colors.ENDC + "]\t" + str(var) + "\n"
 
 
-def csv_write(DIR, l):
-    with open(DIR, 'a') as file:
+def csv_write(csv_file, row):
+    with open(csv_file, 'a') as file:
         writer = csv.writer(file)
-        writer.writerow(l)
+        writer.writerow(row)
 
 
 def select_qap_problem():
     qap_files = [f for f in listdir("QAP/") if isfile(join("QAP/", f))]
 
-    i = 0
-    elements = list()
-    for element in qap_files:
-        elements.append(element)
-        element = element[:-4]
-        print(f"Write {i} for the problem {element}")
-        i += 1
+    for i, element in enumerate(qap_files):
+        print(f"Write {i} for the problem {element.rsplit('.')[0]}")
     
-    problem = int(input("Which problem do you want to select? "))
-    DIR = "QAP/"+qap_files[problem]
+    problem = int(input("Which problem do you want to solve? "))
+    filepath = "QAP/"+qap_files[problem]
 
-    return DIR, qap_files[problem]
-
-
-def generate_npp_file(_n: int, max_range, out_dir):
-    not_ok = True
-    i = 0
-    _dir = "NPP_"+str(_n)+"_"+str(max_range)
-    while (not_ok):
-        try:
-            with open(out_dir+"/"+_dir.replace("NPP", "NPP_LOG")+".csv", "r") as file:
-                pass
-            max_range = int(max_range/10)
-            if (max_range < 10):
-                exit("File output terminati")
-            _dir = "NPP_"+str(_n)+"_"+str(max_range)
-            i += 1
-        except FileNotFoundError:
-            not_ok = False
-        
-    DIR = out_dir+"/"+_dir
-
-    return DIR
+    return filepath, qap_files[problem].rsplit('.')[0]
 
 
-def generate_qap_file(name, out_dir):
-    not_ok = True
-    i = 0
-    _dir = "QAP_" + str(name)
-    while (not_ok):
-        try:
-            with open(out_dir+"/" + _dir + ".csv", "r") as _:
-                pass
-            i += 1
-            _dir = "QAP_" + str(name) + "_" + str(i)
-        except FileNotFoundError:
-            not_ok = False
-
-    DIR = out_dir+"/"+_dir
-
-    return DIR
-
-
-def generate_tsp_file(n: int, out_dir):
-    not_ok = True
-    i = 1
-    _dir = "TSP_"+str(n)+"_"+str(i)
-    while (not_ok):
-        try:
-            with open(out_dir+"/"+_dir.replace("TSP", "TSP_LOG")+".csv", "r") as _:
-                pass
-            i += 1
-            _dir = "TSP_"+str(n)+"_"+str(i)
-        except FileNotFoundError:
-            not_ok = False
-        
-    DIR = out_dir+"/"+_dir
-
-    return DIR
-
-
-def convert_to_numpy_Q(qubo, n):
-    Q = np.zeros((n, n))
-    for x, y in qubo.keys():
-        Q[x][y] = qubo[x, y]
+def convert_to_numpy_Q(qubo_dict, qubo_size):
+    Q = np.zeros((qubo_size, qubo_size))
+    for x, y in qubo_dict.keys():
+        Q[x][y] = qubo_dict[x, y]
 
     return Q
 
@@ -117,94 +56,109 @@ def main(config):
     print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
     pr = input(Colors.OKCYAN + "Which problem would you like to run? (NPP, QAP, TSP)  " + Colors.ENDC)
     if pr == "NPP":
-        NPP = True
-        QAP = False
-        TSP = False
+        npp, qap, tsp = True, False, False
     elif pr == "QAP":
-        NPP = False
-        QAP = True
-        TSP = False
+        npp, qap, tsp = False, True, False
     elif pr == "TSP":
-        NPP = False
-        QAP = False
-        TSP = True
+        npp, qap, tsp = False, False, True
     else:
-        NPP, QAP, TSP = False, False, False
-        print("[" + Colors.FAIL + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + pr + Colors.ENDC
-              + " is not valid, exiting...")
-        exit(2)
+        npp, qap, tsp = False, False, False
+        print("[" + Colors.ERROR + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + pr + Colors.ENDC
+              + " is not valid", file=sys.stderr)
+        exit(0)
 
-    if NPP:
-        nn = int(input("Insert n: "))
-        while nn <= 0:
-            nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
+    out_dir = None
+    if npp:
+        n = int(input("Insert n (number of values): "))
+        while n <= 0:
+            n = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid n" + Colors.ENDC
+                          + "] Insert n (number of values): "))
         max_range = int(input("Insert the upper limit of the generation interval: "))
         while max_range <= 0:
-            max_range = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid value" + Colors.ENDC
+            max_range = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid value" + Colors.ENDC
                                   + "] Insert the upper limit of the generation interval: "))
-        _DIR = generate_npp_file(nn, max_range, config['out_dir'])
-        S = utils.generate_S(nn, max_range)
-        _Q, c = utils.generate_NPP_QUBO_problem(S)
-        log_DIR = _DIR.replace("NPP", "NPP_LOG") + ".csv"
-    elif QAP:
-        _dir, name = select_qap_problem()
-        _Q, penalty, nn, y = utils.generate_QAP_QUBO_problem(_dir)
-        name = name.replace(".txt", "")
-        _DIR = generate_qap_file(name, config['out_dir'])
-        log_DIR = _DIR.replace("QAP", "QAP_LOG") + ".csv"
-    elif TSP:
-        nn = int(input("Insert n: "))
-        while nn <= 0 or nn > 12:
-            nn = int(input("[" + Colors.FAIL + Colors.BOLD + "Invalid n" + Colors.ENDC + "] Insert n: "))
-        _DIR = generate_tsp_file(nn, config['out_dir'])
-        log_DIR = _DIR.replace("TSP", "TSP_LOG") + ".csv"
-        csv_write(DIR=log_DIR, l=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
+
+        S = utils.generate_S(n, max_range)
+        Q, c = utils.generate_NPP_QUBO_problem(S)
+
+        out_dir = os.path.join(config['out_dir'], 'NPP', f'{n}_{max_range}',
+                               datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
+        os.makedirs(out_dir, exist_ok=True)
+        csv_log_file = os.path.join(out_dir, f'npp_{n}_{max_range}_log.csv')
+    elif qap:
+        filepath, problem_name = select_qap_problem()
+        Q, penalty, n, y = utils.generate_QAP_QUBO_problem(filepath)
+
+        out_dir = os.path.join(config['out_dir'], 'QAP', f'{problem_name}',
+                               datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
+        os.makedirs(out_dir, exist_ok=True)
+        csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_log.csv')
+    elif tsp:
+        n = int(input("Insert n (number of cities, allowed range [0, 11]): "))
+        while n <= 0 or n > 12:
+            n = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid n" + Colors.ENDC
+                          + "] Insert n (number of cities, allowed range [0, 11]): "))
+        qubo_size = n ** 2
+
+        out_dir = os.path.join(config['out_dir'], 'TSP', f'{n}',
+                               datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
+        os.makedirs(out_dir, exist_ok=True)
+        csv_log_file = os.path.join(out_dir, f'tsp_{n}_log.csv')
+        csv_write(csv_file=csv_log_file, row=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
+
         df = pd.DataFrame(
             columns=["Solution", "Cost", "Fixed solution", "Fixed cost", "Response time", "Total time", "Response"],
             index=['Bruteforce', 'D-Wave', 'Hybrid', 'QALS']
         )
-        tsp_matrix, qubo = tsp_utils.tsp(nn, _DIR + "_solution.csv", _DIR[:-1] + "DATA.csv", df)
-        _Q = convert_to_numpy_Q(qubo, nn**2)
+        tsp_matrix, qubo_dict = tsp_utils.tsp(n, os.path.join(out_dir, f'tsp_{n}_data.csv'), df,
+                                              d_wave=False, hybrid=False)
+        Q = convert_to_numpy_Q(qubo_dict, qubo_size)
+
+    with open(os.path.join(out_dir, 'config.json'), 'w') as json_config:
+        json.dump(config, json_config, ensure_ascii=False, indent=4)
     
     print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" +
           Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
-    
-    if NPP:
+    if npp:
         print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")
 
-    start = time.time()
+    start_time = time.time()
     z, r_time = qals.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
-                         k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=nn if NPP or QAP else nn ** 2,
+                         k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=n if npp or qap else qubo_size,
                          N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
-                         q=qals_config['q'], Q=_Q, topology=config['topology'], log_DIR=log_DIR,
-                         tabu_type=config['tabu_type'], sim=config['simulated_annealing'])
-    conv = datetime.timedelta(seconds=int(time.time() - start))
+                         q=qals_config['q'], Q=Q, topology=config['topology'], csv_log_file=csv_log_file,
+                         tabu_type=config['tabu_type'], simulation=config['simulation'])
+    min_z = qals.function_f(Q, z).item()
+    total_timedelta = datetime.timedelta(seconds=int(time.time() - start_time))
 
-    min_z = qals.function_f(_Q, z).item()
     print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     string = str()
-    if nn < 16:
+    if n < 16:
         string += log_write("Z", z)
     else:
-        string += log_write("Z", "Too big to print, see "+_DIR+"_solution.csv for the complete result")
+        string += log_write("Z", "Too big to print, see "+out_dir+"_solution.csv for the complete result")
     string += log_write("fQ", round(min_z, 2))
 
-    if NPP:
-        diff2 = (c**2 + 4*min_z)
-        string += log_write("c", c) + log_write("C", c**2) + log_write("DIFF", round(diff2, 2)) + \
-            log_write("diff", np.sqrt(diff2))
-        csv_write(DIR=_DIR+"_solution.csv", l=["c", "c**2", "diff**2", "diff", "S", "z", "Q"])
-        csv_write(DIR=_DIR+"_solution.csv", l=[c, c**2, diff2, np.sqrt(diff2), S, z, _Q if nn < 5 else "too big"])
-    elif QAP:
+    if npp:
+        diff_squared = (c**2 + 4*min_z)
+        string += log_write("c", c) + log_write("C", c**2) + log_write("DIFF", round(diff_squared, 2)) + \
+            log_write("diff", np.sqrt(diff_squared))
+        csv_write(csv_file=csv_log_file + "_solution.csv", row=["c", "c**2", "diff**2", "diff", "S", "z", "Q"])
+        csv_write(csv_file=csv_log_file + "_solution.csv", row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S, z,
+                                                         Q if n < 5 else "too big"])
+    elif qap:
         string += log_write("y", y) + log_write("Penalty", penalty) + log_write("Difference", round(y+min_z, 2))
-        csv_write(DIR=_DIR+"_solution.csv", l=["problem", "y", "penalty", "difference (y+minimum)", "z", "Q"])
-        csv_write(DIR=_DIR+"_solution.csv", l=[name, y, penalty, y+min_z, np.atleast_2d(z).T, _Q])
+        csv_write(csv_file=csv_log_file + "_solution.csv", row=["problem", "y", "penalty", "difference (y+minimum)",
+                                                                "z", "Q"])
+        csv_write(csv_file=csv_log_file + "_solution.csv", row=[name, y, penalty, y + min_z, np.atleast_2d(z).T, Q])
     else:
-        DW = dict()
-        DW['type'] = 'QALS'
-        DW['response'] = z
-        res = np.split(z, nn)
+        dw = dict()
+        dw['type'] = 'QALS'
+        dw['response'] = z
+
+        res = np.split(z, n)
         valid = True
+
         fix_sol = list()
         for split in res:
             if np.count_nonzero(split == 1) != 1:
@@ -214,22 +168,23 @@ def main(config):
                 valid = False
             else:
                 fix_sol.append(where)
+
         if not valid:
-            string += "[" + Colors.BOLD + Colors.FAIL + "ERROR" + Colors.ENDC + "] Result is not valid.\n"
-            DW['fixsol'] = list(tsp_utils.fix_solution(z, True))
-            string += "[" + Colors.BOLD + Colors.WARNING + "VALID" + Colors.ENDC + "] Validation occurred \n"
+            string += "[" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC + "] Result is not valid.\n"
+            dw['fixsol'] = list(tsp_utils.get_TSP_solution(z, refinement=True))
+            string += "[" + Colors.BOLD + Colors.WARNING + "VALID" + Colors.ENDC + "] Refinement occurred \n"
         else:
-            DW['fixsol'] = []
+            dw['fixsol'] = []
+        dw['fixcost'] = round(tsp_utils.calculate_cost(tsp_matrix, dw['fixsol']), 2)
 
-        DW['fixcost'] = round(tsp_utils.calculate_cost(tsp_matrix, DW['fixsol']), 2)
-        DW['sol'] = tsp_utils.binary_state_to_points_order(z)
-        DW['cost'] = tsp_utils.calculate_cost(tsp_matrix, DW['sol'])
-        DW['rtime'] = r_time
-        DW['ttime'] = conv
+        dw['sol'] = tsp_utils.binary_state_to_points_order(z)
+        dw['cost'] = tsp_utils.calculate_cost(tsp_matrix, dw['sol'])
 
-        tsp_utils.write_TSP_csv(df, DW)
+        dw['rtime'] = r_time
+        dw['ttime'] = total_timedelta
 
-        df.to_csv(_DIR+"_solution.csv")
+        tsp_utils.add_TSP_info_to_df(df, dw)
+        df.to_csvos.path.join(out_dir, f'tsp_{n}_solution.csv')
     
     print(string)
 

@@ -1,7 +1,7 @@
 {
   "out_dir": "results",
   "random_seed": 17,
-  "simulated_annealing": false,
+  "simulation": false,
   "topology": "pegasus",
   "tabu_type": "binary",
   "qals_params": {
