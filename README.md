@@ -1,10 +1,8 @@
 # Quantum Annealing for solving QUBO Problems
 
-Python implementation of research: Pastorello, D. and Blanzieri, E., 2019. Quantum annealing learning search for solving QUBO problems. Quantum Information Processing, 18(10), p.303.
+Python implementation of the algorithm presented in: Pastorello, D. and Blanzieri, E., 2019. Quantum annealing learning search for solving QUBO problems. Quantum Information Processing, 18(10), p.303.
 
-To start the program run *start.py* script and follow instructions on terminal.
+To execute the program run the *main.py* script providing a configuration file as parameter (e.g. *config_files/default.json*).
 
-In order to change hyperparameters open file *start.py* and change them in line 154, future updates will provide *csv* file hyperparameters.
-
-If you want to add QAP problems just add them in qap folder.
+If you want to add new QAP problems, just add them in QAP folder.
 

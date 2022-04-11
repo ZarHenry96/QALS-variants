@@ -247,11 +247,11 @@ def now():
     return datetime.now().strftime("%H:%M:%S")
 
 
-def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
+def generate_and_solve_TSP(n, data_filepath, out_df, bruteforce=True, d_wave=True, hybrid=True):
     print("\t\t" + Colors.BOLD + Colors.HEADER + "TSP PROBLEM SOLVER..." + Colors.ENDC)
 
     qubo = dict()
-    nodes_array = get_nodes(n, filepath)
+    nodes_array = get_nodes(n, data_filepath)
     
     tsp_matrix = get_tsp_matrix(nodes_array)
     constraint_constant = tsp_matrix.max() * len(tsp_matrix)
@@ -277,7 +277,7 @@ def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
 
-        add_TSP_info_to_df(df, bf)
+        add_TSP_info_to_df(out_df, bf)
 
 
     # D-Wave quantum annealing
@@ -302,7 +302,7 @@ def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
             else time.time()-start_qa
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave response computed")
 
-        add_TSP_info_to_df(df, qa)
+        add_TSP_info_to_df(out_df, qa)
     
     
     # Hybrid
@@ -314,7 +314,7 @@ def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
 
         start_hy = time.time()
         hy['response'] = solve_tsp_hybrid(qubo)
-        hy['rtime'] = timedelta(seconds=int(time.time()-start_qa)) if int(time.time()-start_hy) > 0 \
+        hy['rtime'] = timedelta(seconds=int(time.time()-start_hy)) if int(time.time()-start_hy) > 0 \
             else time.time()-start_hy
 
         hy['sol'] = binary_state_to_points_order(hy['response'])
@@ -328,7 +328,7 @@ def tsp(n, filepath, df, bruteforce=True, d_wave=True, hybrid=True):
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid response computed")
 
-        add_TSP_info_to_df(df, hy)
+        add_TSP_info_to_df(out_df, hy)
         
     print("\n\t" + Colors.BOLD + Colors.HEADER + "   TSP PROBLEM SOLVER END" + Colors.ENDC)
     
