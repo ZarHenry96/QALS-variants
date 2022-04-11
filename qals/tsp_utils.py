@@ -13,7 +13,7 @@ import time
 import numpy as np
 from datetime import datetime, timedelta
 from qals.colors import Colors
-from qals.solvers import annealer, hybrid, stub_annealer
+from qals.solvers import annealer, hybrid, stub_solver
 from dwave.system.samplers import DWaveSampler           
 from dwave.system.composites import EmbeddingComposite
 from dwave.system import LeapHybridSampler

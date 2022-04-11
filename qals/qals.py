@@ -2,7 +2,7 @@
 import time
 import numpy as np
 from qals.utils import generate_chimera_topology, generate_pegasus_topology
-from qals.solvers import annealer, hybrid, stub_annealer
+from qals.solvers import annealer, hybrid, stub_solver
 from dwave.system.samplers import DWaveSampler
 import datetime
 import neal
@@ -200,7 +200,6 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                   + "Started Algorithm in Quantum Mode" + Colors.ENDC)
 
             sampler = DWaveSampler({'topology__type': topology})
-            csv_log_file.replace("TSP_", "TSP_QA_")
 
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
                   + f"Using {topology} Topology \n" + Colors.ENDC)
@@ -212,7 +211,6 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                   + Colors.ENDC)
 
             sampler = neal.SimulatedAnnealingSampler()
-            csv_log_file.replace("TSP_", "TSP_SA_")
 
             if topology == 'chimera':
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
