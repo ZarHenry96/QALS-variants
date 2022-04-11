@@ -1,13 +1,18 @@
 import dwave_networkx as dnx
+import json
 import networkx as nx
 import numpy as np
 import random
 
 
-def generate_S(n, max_value):
+def generate_S(n, max_value, data_file):
     vect = [0 for _ in range(n)]
     for index in range(n):
         vect[index] = random.randint(0, max_value)
+
+    with open(data_file, 'w') as data_f:
+        json.dump(vect, data_f, ensure_ascii=False)
+
     return vect
 
 

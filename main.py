@@ -95,13 +95,13 @@ def main(config):
                                       + "] Insert the upper limit of the generation interval: "))
             config['problem_params']['max_value'] = max_value
 
-        S = utils.generate_S(n, max_value)
-        Q, c = utils.generate_NPP_QUBO_problem(S)
-
         out_dir = os.path.join(config['root_out_dir'], 'NPP', f'n_{n}_range_{max_value}',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         csv_log_file = os.path.join(out_dir, f'npp_{n}_{max_value}_log.csv')
+
+        S = utils.generate_S(n, max_value, os.path.join(out_dir, f'npp_{n}_{max_value}_data.json'))
+        Q, c = utils.generate_NPP_QUBO_problem(S)
 
     elif qap:  # QAP problem
         filepath, problem_name = None, None
@@ -115,12 +115,12 @@ def main(config):
             filepath, problem_name = select_qap_problem()
             config['problem_params']['qap_filename'] = f'{problem_name}.txt'
 
-        Q, penalty, n, y = utils.generate_QAP_QUBO_problem(filepath)
-
         out_dir = os.path.join(config['root_out_dir'], 'QAP', f'{problem_name}',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_log.csv')
+
+        Q, penalty, n, y = utils.generate_QAP_QUBO_problem(filepath)
 
     elif tsp:  # TSP problem
         n = None
