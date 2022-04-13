@@ -117,12 +117,12 @@ def g(Q, A, oldperm, p, simulation):
 
 def map_back(z, perm):
     n = len(z)
-    inverted = invert(perm, n)
+    inverse = invert(perm, n)
 
     z_ret = np.zeros(n, dtype=int)
 
     for i in range(n):
-        z_ret[i] = int(z[inverted[i]])
+        z_ret[i] = int(z[inverse[i]])
 
     return z_ret
 
@@ -197,7 +197,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     try:
         if not simulation:
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                  + "Started Algorithm in Quantum Mode" + Colors.ENDC)
+                  + "Algorithm Started in Quantum Modality" + Colors.ENDC)
 
             sampler = DWaveSampler({'topology__type': topology})
 
@@ -207,12 +207,12 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             A = get_active(sampler, n)
         else:
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-                  + "Started Algorithm in Simulation Mode (simulated annealing sampler on embedded QUBO matrix)"
+                  + "Algorithm Started in Simulation Modality (ideal annealer topology & simulated annealing sampler)"
                   + Colors.ENDC)
 
             sampler = neal.SimulatedAnnealingSampler()
 
-            if topology == 'chimera':
+            if topology.lower() == 'chimera':
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
                       + "Using Chimera Topology \n" + Colors.ENDC)
 
@@ -284,6 +284,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     while True:
         print(f"-------------------------------------------------------------------------------------------------------"
               f"--------")
+        iteration_start_time = time.time()
         if total_time:
             string = str(datetime.timedelta(seconds=((total_time/i) * (i_max - i))))
         else:
@@ -330,7 +331,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             else:
                 e = e + 1
             
-            iteration_timedelta = datetime.timedelta(seconds=(time.time()-start_time))
+            iteration_timedelta = datetime.timedelta(seconds=(time.time()-iteration_start_time))
 
             try:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
@@ -345,7 +346,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                       + f"] Took {iteration_timedelta} in total")
                 csv_write(csv_file=csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
             
-            total_time = total_time + (time.time() - start_time)
+            total_time = total_time + (time.time() - iteration_start_time)
 
             print(f"---------------------------------------------------------------------------------------------------"
                   f"------------\n")
@@ -364,13 +365,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
     total_timedelta = datetime.timedelta(seconds=total_time)
     if i != 1:
-        avg_time = datetime.timedelta(seconds=int(total_time/(i-1)))
+        avg_iteration_time = datetime.timedelta(seconds=int(total_time/(i-1)))
     else:
-        avg_time = datetime.timedelta(seconds=int(total_time))
+        avg_iteration_time = datetime.timedelta(seconds=int(total_time))
     
     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average time for iteration: "
-          + str(avg_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Total time: "
-          + str(total_timedelta) + "\n")
+          + str(avg_iteration_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
+          + "] Total time: " + str(total_timedelta) + "\n")
 
-    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_time
+    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_iteration_time
 

@@ -3,8 +3,8 @@
   "problem_params": {},
   "root_out_dir": "results",
   "random_seed": 17,
-  "simulation": false,
   "topology": "pegasus",
+  "simulation": false,
   "tabu_type": "binary",
   "qals_params": {
     "d_min": 70,
