@@ -21,5 +21,5 @@ def hybrid(theta, sampler):
     return list(response.first.sample.values())
 
 
-def stub_solver(n):
-    return [random.randint(0, 1) for _ in range(0, n)]
+def stub_solver(solution_length):
+    return [random.randint(0, 1) for _ in range(0, solution_length)]

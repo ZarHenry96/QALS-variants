@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 import time
 import numpy as np
-from qals.utils import generate_chimera_topology, generate_pegasus_topology
-from qals.solvers import annealer, hybrid, stub_solver
-from dwave.system.samplers import DWaveSampler
 import datetime
 import neal
 import sys
-import csv
 import random
-from qals.colors import Colors
+
+from dwave.system.samplers import DWaveSampler
 from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
+
+from qals.colors import Colors
+from qals.solvers import annealer, stub_solver
+from qals.utils import now, csv_write, generate_chimera_topology, generate_pegasus_topology
 
 np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
 
@@ -20,7 +21,7 @@ def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
 
 
-def get_active(sampler, n):
+def get_active_topology(sampler, n):
     nodes = dict()
     tmp = list(sampler.nodelist)
     nodelist = list()
@@ -38,12 +39,56 @@ def get_active(sampler, n):
             nodes[node_1].append(node_2)
             nodes[node_2].append(node_1)
 
-    if (len(nodes) != n):
+    if len(nodes) != n:
         i = 1
-        while (len(nodes) != n):
+        while len(nodes) != n:
             nodes[tmp[n+i]] = list()
 
     return nodes
+
+
+def get_sampler_and_adjacency_matrix(simulation, topology, n):
+    if not simulation:
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
+              + "Algorithm Started in Quantum Modality" + Colors.ENDC)
+
+        sampler = DWaveSampler({'topology__type': topology})
+
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
+              + f"Using {topology} Topology \n" + Colors.ENDC)
+
+        A = get_active_topology(sampler, n)
+    else:
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
+              + "Algorithm Started in Simulation Modality (ideal annealer topology & simulated annealing sampler)"
+              + Colors.ENDC)
+
+        sampler = neal.SimulatedAnnealingSampler()
+
+        if topology.lower() == 'chimera':
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
+                  + "Using Chimera Topology \n" + Colors.ENDC)
+
+            if n <= 2048:
+                try:
+                    A = generate_chimera_topology(n)
+                except:
+                    print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                          + "] " + f"the required topology could not be generated",
+                          file=sys.stderr)
+                    exit(0)
+            else:
+                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                      + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (2048)",
+                      file=sys.stderr)
+                exit(0)
+        else:
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
+                  + "Using Pegasus Topology \n" + Colors.ENDC)
+
+            A = generate_pegasus_topology(n)
+
+    return sampler, A
 
 
 def make_decision(probability):
@@ -60,7 +105,7 @@ def random_shuffle(dictionary):
 
 def fill(m, perm, _n):
     n = len(perm)
-    if (n != _n):
+    if n != _n:
         n = _n
 
     filled = np.zeros(n, dtype=int)
@@ -75,7 +120,7 @@ def fill(m, perm, _n):
 
 def invert(perm, _n):
     n = len(perm)
-    if(n != _n):
+    if n != _n:
         n = _n
 
     inverse = np.zeros(n, dtype=int)
@@ -98,7 +143,7 @@ def g(Q, A, oldperm, p, simulation):
     inverse = invert(perm, n)
     
     Theta = dict()
-    if (simulation):
+    if simulation:
         for row, col in A:
             k = inverse[row]
             l = inverse[col]
@@ -183,64 +228,20 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     return Q_prime
 
 
-def csv_write(csv_file, row):
-    with open(csv_file, 'a') as file:
-        writer = csv.writer(file)
-        writer.writerow(row)
-
-
-def now():
-    return datetime.datetime.now().strftime("%H:%M:%S")
-
-
-def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, csv_log_file, tabu_type, simulation):
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, qals_csv_log_file, tabu_csv_log_file,
+        tabu_type, simulation):
     try:
-        if not simulation:
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                  + "Algorithm Started in Quantum Modality" + Colors.ENDC)
+        sampler, A = get_sampler_and_adjacency_matrix(simulation, topology, n)
 
-            sampler = DWaveSampler({'topology__type': topology})
-
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                  + f"Using {topology} Topology \n" + Colors.ENDC)
-
-            A = get_active(sampler, n)
-        else:
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-                  + "Algorithm Started in Simulation Modality (ideal annealer topology & simulated annealing sampler)"
-                  + Colors.ENDC)
-
-            sampler = neal.SimulatedAnnealingSampler()
-
-            if topology.lower() == 'chimera':
-                print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-                      + "Using Chimera Topology \n" + Colors.ENDC)
-
-                if n <= 2048:
-                    try:
-                        A = generate_chimera_topology(n)
-                    except:
-                        print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
-                              + "] " + f"the required topology could not be generated",
-                              file=sys.stderr)
-                        exit(0)
-                else:
-                    print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
-                          + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (2048)",
-                          file=sys.stderr)
-                    exit(0)
-            else:
-                print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                      + "Using Pegasus Topology \n" + Colors.ENDC)
-
-                A = generate_pegasus_topology(n)
-
+        csv_write(csv_file=qals_csv_log_file, row=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
+        csv_write(csv_file=tabu_csv_log_file, row=["i", "S"])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
               + " - eta = " + str(eta) + " - i_max = " + str(i_max) + " - k = " + str(k) + " - lambda_0 = "
               + str(lambda_zero) + " - n = " + str(n) + " - N = " + str(N) + " - N_max = " + str(N_max)
               + " - p_delta = " + str(p_delta) + " - q = " + str(q) + "\n")
 
         p = 1
+
         Theta_one, m_one = g(Q, A, np.arange(n), p, simulation)
         Theta_two, m_two = g(Q, A, np.arange(n), p, simulation)
 
@@ -249,7 +250,9 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         z_one = map_back(annealer(Theta_one, sampler, k), m_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN"
-              + Colors.ENDC + "] Working on z2...", end=' ')
+              + Colors.ENDC + "] ", end='')
+
+        print("Working on z2...", end=' ')
         start_time = time.time()
         z_two = map_back(annealer(Theta_two, sampler, k), m_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
@@ -258,7 +261,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         f_one = function_f(Q, z_one).item()
         f_two = function_f(Q, z_two).item()
 
-        if (f_one < f_two):
+        if f_one < f_two:
             z_star = z_one
             f_star = f_one
             m_star = m_one
@@ -270,8 +273,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             z_prime = z_one
 
         S = np.zeros(shape=(n, n))
-        if (f_one != f_two):
+        if f_one != f_two:
             S = add_to_tabu(S, z_prime, n, tabu_type)
+
+        csv_write(csv_file=qals_csv_log_file, row=[0, max(f_one, f_two) if f_one != f_two else "null", f_star, p,
+                                                   "null", "null", "null", z_prime if f_one != f_two else "null",
+                                                   z_star])
+        csv_write(csv_file=tabu_csv_log_file, row=[0, S])
     except KeyboardInterrupt:
         exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
 
@@ -282,8 +290,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     total_time = 0
     
     while True:
-        print(f"-------------------------------------------------------------------------------------------------------"
-              f"--------")
+        print("-" * 110)
         iteration_start_time = time.time()
         if total_time:
             string = str(datetime.timedelta(seconds=((total_time/i) * (i_max - i))))
@@ -296,7 +303,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         try:
             Q_prime = sum_Q_and_tabu(Q, S, lamda_value, n, tabu_type)
             
-            if (i % N == 0):
+            if i % N == 0:
                 p = p - ((p - p_delta)*eta)
 
             Theta_prime, m = g(Q_prime, A, m_star, p, simulation)
@@ -313,7 +320,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             if (z_prime != z_star).any():
                 f_prime = function_f(Q, z_prime).item()
                 
-                if (f_prime < f_star):
+                if f_prime < f_star:
                     z_prime, z_star = z_star, z_prime
                     f_star = f_prime
                     m_star = m
@@ -329,27 +336,28 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                         e = 0
                 lamda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
             else:
+                f_prime = None
                 e = e + 1
             
             iteration_timedelta = datetime.timedelta(seconds=(time.time()-iteration_start_time))
 
-            try:
+            if f_prime is not None:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                       + f"] f_prime = {round(f_prime, 2)}, f_star = {round(f_star, 2)}, p = {p}, e = {e}, d = {d} "
                         f"and lambda = {round(lamda_value, 5)}\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN
                       + "DATA" + Colors.ENDC + f"] Took {iteration_timedelta} in total")
-                csv_write(csv_file=csv_log_file, row=[i, f_prime, f_star, p, e, d, lamda_value, z_prime, z_star])
-            except UnboundLocalError:
+                csv_write(csv_file=qals_csv_log_file, row=[i, f_prime, f_star, p, e, d, lamda_value, z_prime, z_star])
+            else:
                 print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC +
                       f" No variations on f and z. p = {p}, e = {e}, d = {d} and lambda = {round(lamda_value, 5)}\n"
                       + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                       + f"] Took {iteration_timedelta} in total")
-                csv_write(csv_file=csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
-            
+                csv_write(csv_file=qals_csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
+            csv_write(csv_file=tabu_csv_log_file, row=[i, S])
+
             total_time = total_time + (time.time() - iteration_start_time)
 
-            print(f"---------------------------------------------------------------------------------------------------"
-                  f"------------\n")
+            print("-" * 110 + "\n")
             if (i == i_max) or ((e + d >= N_max) and (d < d_min)):
                 if i != i_max:
                     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Exited at cycle "
@@ -365,13 +373,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
     total_timedelta = datetime.timedelta(seconds=total_time)
     if i != 1:
-        avg_iteration_time = datetime.timedelta(seconds=int(total_time/(i-1)))
+        avg_response_time = datetime.timedelta(seconds=int(total_time/(i-1)))
     else:
-        avg_iteration_time = datetime.timedelta(seconds=int(total_time))
+        avg_response_time = datetime.timedelta(seconds=int(total_time))
     
-    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average time for iteration: "
-          + str(avg_iteration_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
+    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average response time: "
+          + str(avg_response_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
           + "] Total time: " + str(total_timedelta) + "\n")
 
-    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_iteration_time
+    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_response_time
 

@@ -1,6 +1,7 @@
 {
   "problem": "",
   "problem_params": {},
+  "additional_params": {},
   "root_out_dir": "results",
   "random_seed": 17,
   "topology": "pegasus",

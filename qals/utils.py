@@ -1,34 +1,50 @@
+import csv
 import dwave_networkx as dnx
-import json
 import networkx as nx
 import numpy as np
+import pandas as pd
 import random
 
+from datetime import datetime
 
-def generate_S(n, max_value, data_file):
-    vect = [0 for _ in range(n)]
-    for index in range(n):
+
+def now():
+    return datetime.now().strftime("%H:%M:%S")
+
+
+def csv_write(csv_file, row):
+    with open(csv_file, 'a') as file:
+        writer = csv.writer(file)
+        writer.writerow(row)
+
+
+def generate_and_save_S(num_values, max_value, data_file):
+    vect = [0 for _ in range(num_values)]
+    for index in range(num_values):
         vect[index] = random.randint(0, max_value)
 
-    with open(data_file, 'w') as data_f:
-        json.dump(vect, data_f, ensure_ascii=False)
+    # Save to csv file
+    pd.DataFrame([vect], dtype=int).to_csv(data_file, index=False, header=False)
 
     return vect
 
 
-def generate_NPP_QUBO_problem(S):
-    """
-        Generate the QUBO matrix for the number partitioning problem, starting from a vector S
-    """
-    n = len(S)
+def load_S(data_filepath):
+    df = pd.read_csv(data_filepath, header=None)
+
+    return list(df.to_numpy()[0])
+
+
+def build_NPP_QUBO_problem(S):
+    num_values = len(S)
     c = 0
-    for i in range(n):
+    for i in range(num_values):
         c += S[i]
+
+    QUBO = np.zeros((num_values, num_values))
     col_max = 0
     col = 0
-    QUBO = np.zeros((n, n))
-
-    for row in range(n):
+    for row in range(num_values):
         col_max += 1
         while col < col_max:
             if row == col:
@@ -47,65 +63,62 @@ def read_integers(filename: str):
         return [int(elem) for elem in f.read().split()]
 
 
-def generate_QAP_QUBO_matrix(flow: np.ndarray, distance: np.ndarray, penalty):
-    """Quadratic Assignment Problem (QAP)"""
-    n = len(flow)
+def generate_QAP_QUBO_matrix(flow, distance, penalty):
+    num_values = len(flow)
     q = np.einsum("ij,kl->ikjl", flow, distance).astype(np.float)
-
     i = range(len(q))
 
     q[i, :, i, :] += penalty
     q[:, i, :, i] += penalty
     q[i, i, i, i] -= 4 * penalty
 
-    return q.reshape(n ** 2, n ** 2)
+    return q.reshape(num_values ** 2, num_values ** 2)
 
 
-def generate_QAP_QUBO_problem(filename):
-    file_it = iter(read_integers(filename))
-    n = next(file_it)
-    P = [[next(file_it) for j in range(n)] for i in range(n)]
-    L = [[next(file_it) for j in range(n)] for i in range(n)]
+def build_QAP_QUBO_problem(data_filepath):
+    file_iterator = iter(read_integers(data_filepath))
 
-    Q = np.kron(P, L)
+    n = next(file_iterator)
+    flow = [[next(file_iterator) for _ in range(n)] for _ in range(n)]
+    distance = [[next(file_iterator) for _ in range(n)] for _ in range(n)]
 
-    pen = (Q.max() * 2.25)
-    matrix = generate_QAP_QUBO_matrix(P, L, pen)
-    y = pen * (len(P) + len(L))
+    kron_product = np.kron(flow, distance)
 
-    return matrix, pen, len(matrix), y
+    penalty = (kron_product.max() * 2.25)
+    matrix = generate_QAP_QUBO_matrix(flow, distance, penalty)
+    y = penalty * (len(flow) + len(distance))
+
+    return matrix, penalty, len(matrix), y
 
 
-def generate_chimera_topology(n):
+def generate_chimera_topology(qubits_num):
     G = dnx.chimera_graph(16)
     tmp = nx.to_dict_of_lists(G)
 
     rows = []
     cols = []
-
-    for i in range(n):
+    for i in range(qubits_num):
         rows.append(i)
         cols.append(i)
         for j in tmp[i]:
-            if (j < n):
+            if j < qubits_num:
                 rows.append(i)
                 cols.append(j)
 
     return list(zip(rows, cols))
 
 
-def generate_pegasus_topology(n):
+def generate_pegasus_topology(qubits_num):
     G = dnx.pegasus_graph(16)
     tmp = nx.to_numpy_matrix(G)
 
     rows = []
     cols = []
-
-    for i in range(n):
+    for i in range(qubits_num):
         rows.append(i)
         cols.append(i)
-        for j in range(n):
-            if (tmp.item(i, j)):
+        for j in range(qubits_num):
+            if tmp.item(i, j):
                 rows.append(i)
                 cols.append(j)
 
