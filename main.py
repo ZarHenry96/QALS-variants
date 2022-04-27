@@ -1,7 +1,6 @@
 #!/usr/local/bin/python3
 
 import argparse
-import csv
 import datetime
 import json
 import numpy as np
@@ -14,14 +13,14 @@ import time
 
 from os import listdir, makedirs
 from os.path import isfile, join
-from qals import utils, qals, tsp_utils
+from qals import qals, tsp_utils, utils
 from qals.colors import Colors
 
 np.set_printoptions(threshold=sys.maxsize)
 
 
 def add_to_log_string(variable, value):
-    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]\t" + str(value) + "\n"
+    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]\t\t" + str(value) + "\n"
 
 
 def load_npp_params(config):
@@ -224,14 +223,14 @@ def main(config):
     if qubo_size < 16:
         log_string += add_to_log_string("Z*", z_star)
     else:
-        log_string += add_to_log_string("Z*", "Too big to print, see " +
-                                        out_dir + "_solution.csv for the complete result")
+        log_string += add_to_log_string("Z*", "Too big to print, look into " +
+                                        out_dir + " for the complete result")
     log_string += add_to_log_string("f_Q value", round(qubo_image, 2))
 
     if npp:
         diff_squared = (c**2 + 4*qubo_image)
-        log_string += add_to_log_string("c", c) + add_to_log_string("C", c ** 2) + \
-                      add_to_log_string("DIFF", round(diff_squared, 2)) + \
+        log_string += add_to_log_string("c", c) + add_to_log_string("c**2", c ** 2) + \
+                      add_to_log_string("diff**2", round(diff_squared, 2)) + \
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
         solution_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_solution.csv')

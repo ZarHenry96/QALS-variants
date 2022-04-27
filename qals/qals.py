@@ -103,10 +103,8 @@ def random_shuffle(dictionary):
     return dict(zip(keys, values))
 
 
-def fill(m, perm, _n):
+def fill(m, perm):
     n = len(perm)
-    if n != _n:
-        n = _n
 
     filled = np.zeros(n, dtype=int)
     for i in range(n):
@@ -118,10 +116,8 @@ def fill(m, perm, _n):
     return filled
 
 
-def invert(perm, _n):
+def invert(perm):
     n = len(perm)
-    if n != _n:
-        n = _n
 
     inverse = np.zeros(n, dtype=int)
     for i in range(n):
@@ -139,8 +135,8 @@ def g(Q, A, oldperm, p, simulation):
             m[i] = i
 
     m = random_shuffle(m)
-    perm = fill(m, oldperm, n)
-    inverse = invert(perm, n)
+    perm = fill(m, oldperm)
+    inverse = invert(perm)
     
     Theta = dict()
     if simulation:
@@ -162,7 +158,7 @@ def g(Q, A, oldperm, p, simulation):
 
 def map_back(z, perm):
     n = len(z)
-    inverse = invert(perm, n)
+    inverse = invert(perm)
 
     z_ret = np.zeros(n, dtype=int)
 
