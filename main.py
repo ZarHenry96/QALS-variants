@@ -1,5 +1,4 @@
 #!/usr/local/bin/python3
-
 import argparse
 import datetime
 import json
@@ -20,7 +19,8 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 def add_to_log_string(variable, value):
-    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]\t\t" + str(value) + "\n"
+    padding = 5 + max(10, len(variable)) - len(str(variable))
+    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
 def load_npp_params(config):
@@ -54,7 +54,7 @@ def select_qap_problem():
     qap_files = [f for f in listdir("QAP/") if isfile(join("QAP/", f))]
 
     for i, element in enumerate(qap_files):
-        print(f"\tWrite {i} for the problem {element.rsplit('.')[0]}")
+        print(f"  Write {i} for the problem {element.rsplit('.')[0]}")
 
     problem = int(input("Which problem do you want to solve? "))
     filepath = "QAP/" + qap_files[problem]
@@ -95,7 +95,7 @@ def load_tsp_params(config):
             config['problem_params']['num_nodes'] = num_nodes
 
     bruteforce, dwave, hybrid = False, False, False
-    if len(config['additional_params'] != 0):
+    if len(config['additional_params']) != 0:
         bruteforce = config['additional_params']['bruteforce'] if 'bruteforce' in config['additional_params']\
                         else bruteforce
         dwave = config['additional_params']['dwave'] if 'dwave' in config['additional_params'] else dwave
@@ -247,7 +247,7 @@ def main(config):
 
     elif tsp:
         output_df = pd.DataFrame(
-            columns=["Solution", "Cost", "Refinement", "Avg. iteration time", "Total time (w/o refinement)", "Z*"],
+            columns=["Solution", "Cost", "Refinement", "Avg. response time", "Total time (w/o refinement)", "Z*"],
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )
         qals_output, log_string = \

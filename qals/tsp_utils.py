@@ -278,7 +278,7 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string,
     output_dict['avg_resp_time'] = avg_response_time
     output_dict['tot_time'] = total_timedelta
 
-    output_dict['z*'] = z_star
+    output_dict['z_star'] = z_star
 
     return output_dict, log_string
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import time
-import numpy as np
 import datetime
 import neal
-import sys
+import numpy as np
 import random
+import sys
+import time
 
 from dwave.system.samplers import DWaveSampler
 from dimod.binary_quadratic_model import BinaryQuadraticModel
