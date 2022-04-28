@@ -102,6 +102,9 @@ def load_tsp_params(config):
 def main(config):
     # Set the seed and create the output directory
     random.seed(config['random_seed'])
+    problem_generation_seed, qals_execution_seed = random.randint(0, 1000000000), random.randint(0, 1000000000)
+    other_seeds = [random.randint(0, 1000000000) for _ in range(0, 3)]
+
     makedirs(config['root_out_dir'], exist_ok=True)
 
     # Select (or load) the problem to run
@@ -125,7 +128,7 @@ def main(config):
         exit(0)
 
     # Select (or load) the problem parameters and build the QUBO matrix
-    out_dir = None
+    random.seed(problem_generation_seed)
     print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
     if npp:  # NPP problem
         data_filepath, num_values, max_value = load_npp_params(config)
@@ -203,6 +206,7 @@ def main(config):
     # Solve the problem using QALS
     start_time = time.time()
     qals_config = config['qals_params']
+    random.seed(qals_execution_seed)
     z_star, avg_response_time = \
         qals.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
                  k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
@@ -250,7 +254,7 @@ def main(config):
                                                             avg_response_time, total_timedelta)
         tsp_utils.add_TSP_info_to_out_df(output_df, qals_output)
 
-        tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, output_df,
+        tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, output_df, other_seeds,
                             bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(os.path.join(out_dir, f'tsp_{num_nodes}_solution.csv'))

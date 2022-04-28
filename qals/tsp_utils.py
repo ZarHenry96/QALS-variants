@@ -9,17 +9,19 @@
 #
 #
 import itertools
-import time
 import numpy as np
+import pandas as pd
+import random
+import time
+
 from datetime import timedelta
+from dwave.system import LeapHybridSampler
+from dwave.system.composites import EmbeddingComposite
+from dwave.system.samplers import DWaveSampler
+
 from qals.colors import Colors
 from qals.solvers import annealer, hybrid, stub_solver
 from qals.utils import now
-from dwave.system.samplers import DWaveSampler           
-from dwave.system.composites import EmbeddingComposite
-from dwave.system import LeapHybridSampler
-import pandas as pd
-import random
 
 
 def generate_and_save_nodes(num_nodes, filepath):
@@ -295,10 +297,11 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['Z*'][dictionary['type']] = dictionary['z_star']
 
 
-def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, bruteforce=True, d_wave=True, hybrid=True):
+def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, random_seeds, bruteforce=True, d_wave=True, hybrid=True):
     print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
 
     # bruteforce
+    random.seed(random_seeds[0])
     if bruteforce:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Solving problem with bruteforce ... ")
@@ -317,7 +320,9 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, bruteforce=True, d_
         add_TSP_info_to_out_df(out_df, bf)
 
     num_nodes = len(nodes_array)
+
     # D-Wave quantum annealing
+    random.seed(random_seeds[1])
     if d_wave:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Start computing D-Wave solution ... ")
@@ -333,6 +338,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, bruteforce=True, d_
         add_TSP_info_to_out_df(out_df, qa)
 
     # Hybrid
+    random.seed(random_seeds[2])
     if hybrid:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Start computing Hybrid solution ... ")
