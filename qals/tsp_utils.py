@@ -267,13 +267,16 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string,
         output_dict['solution'] = list(refine_TSP_solution(z_star))
         output_dict['refinement'] = True
         if log_string is not None:
-            log_string += "[" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC + "] Solution not valid.\n"
-            log_string += "[" + Colors.BOLD + Colors.WARNING + "VALID" + Colors.ENDC + "] Refinement required \n"
+            padding = 10
+            log_string += "[" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC + "]" + " "*padding \
+                          + "Solution not valid.\n"
+            log_string += "[" + Colors.BOLD + Colors.WARNING + "VALID" + Colors.ENDC + "]" + " "*padding \
+                          + "Refinement required \n"
     else:
         output_dict['solution'] = binary_state_to_points_order(z_star)
         output_dict['refinement'] = False
 
-    output_dict['cost'] = calculate_cost(tsp_matrix, output_dict['solution'])
+    output_dict['cost'] = round(calculate_cost(tsp_matrix, output_dict['solution']), 2)
 
     output_dict['avg_resp_time'] = avg_response_time
     output_dict['tot_time'] = total_timedelta
@@ -293,7 +296,7 @@ def add_TSP_info_to_out_df(df, dictionary):
 
 
 def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, bruteforce=True, d_wave=True, hybrid=True):
-    print("\t\t" + Colors.BOLD + Colors.HEADER + "TSP PROBLEM SOLVER..." + Colors.ENDC)
+    print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
 
     # bruteforce
     if bruteforce:
@@ -339,11 +342,11 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, bruteforce=True, d_
         total_time = timedelta(seconds=int(time.time()-start_hy)) if int(time.time()-start_hy) > 0 \
             else time.time()-start_hy
 
-        hy, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix, None, total_time)
+        hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix, None, total_time)
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)
         
-    print("\n\t" + Colors.BOLD + Colors.HEADER + "   TSP PROBLEM SOLVER END" + Colors.ENDC)
+    print("\n\t" + Colors.BOLD + Colors.HEADER + "        TSP PROBLEM SOLVER END" + Colors.ENDC)
     
     return tsp_matrix, qubo_problem

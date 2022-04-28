@@ -18,11 +18,6 @@ from qals.colors import Colors
 np.set_printoptions(threshold=sys.maxsize)
 
 
-def add_to_log_string(variable, value):
-    padding = 5 + max(10, len(variable)) - len(str(variable))
-    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
-
-
 def load_npp_params(config):
     data_filepath, num_values, max_value = None, None, None
     if len(config['problem_params']) != 0:
@@ -221,25 +216,25 @@ def main(config):
     print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     log_string = str()
     if qubo_size < 16:
-        log_string += add_to_log_string("Z*", z_star)
+        log_string += utils.add_to_log_string("Z*", z_star)
     else:
-        log_string += add_to_log_string("Z*", "Too big to print, look into " +
-                                        out_dir + " for the complete result")
-    log_string += add_to_log_string("f_Q value", round(qubo_image, 2))
+        log_string += utils.add_to_log_string("Z*", "Too big to print, look into " +
+                                              out_dir + " for the complete result")
+    log_string += utils.add_to_log_string("f_Q value", round(qubo_image, 2))
 
     if npp:
         diff_squared = (c**2 + 4*qubo_image)
-        log_string += add_to_log_string("c", c) + add_to_log_string("c**2", c ** 2) + \
-                      add_to_log_string("diff**2", round(diff_squared, 2)) + \
-                      add_to_log_string("diff", np.sqrt(diff_squared))
+        log_string += utils.add_to_log_string("c", c) + utils.add_to_log_string("c**2", c ** 2) + \
+                      utils.add_to_log_string("diff**2", round(diff_squared, 2)) + \
+                      utils.add_to_log_string("diff", np.sqrt(diff_squared))
 
         solution_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_solution.csv')
         utils.csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "Q"])
         utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S, z_star,
                                                      Q if num_values < 5 else "too big"])
     elif qap:
-        log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
-                      add_to_log_string("Difference", round(y + qubo_image, 2))
+        log_string += utils.add_to_log_string("y", y) + utils.add_to_log_string("Penalty", penalty) + \
+                      utils.add_to_log_string("Difference", round(y + qubo_image, 2))
         solution_file = os.path.join(out_dir, f'qap_{problem_name}_solution.csv')
         utils.csv_write(csv_file=solution_file, row=["problem", "y", "penalty", "difference (y+minimum)", "z*", "Q"])
         utils.csv_write(csv_file=solution_file, row=[problem_name, y, penalty, y + qubo_image,

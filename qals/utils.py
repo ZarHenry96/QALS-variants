@@ -6,10 +6,16 @@ import pandas as pd
 import random
 
 from datetime import datetime
+from qals.colors import Colors
 
 
 def now():
     return datetime.now().strftime("%H:%M:%S")
+
+
+def add_to_log_string(variable, value):
+    padding = 5 + max(10, len(variable)) - len(str(variable))
+    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
 def csv_write(csv_file, row):
