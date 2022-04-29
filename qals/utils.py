@@ -16,7 +16,12 @@ def csv_write(csv_file, row):
         writer.writerow(row)
 
 
-def generate_and_save_S(num_values, max_value, data_file):
+def tabu_to_string(S):
+    string = '[' + ' '.join(['['+' '.join([str(x) for x in row])+']' for row in S]) + ']'
+    return string
+
+
+def generate_and_save_numbers(num_values, max_value, data_file):
     vect = [0 for _ in range(num_values)]
     for index in range(num_values):
         vect[index] = random.randint(0, max_value)
@@ -27,17 +32,17 @@ def generate_and_save_S(num_values, max_value, data_file):
     return vect
 
 
-def load_S(data_filepath):
+def load_numbers(data_filepath):
     df = pd.read_csv(data_filepath, header=None)
 
     return list(df.to_numpy()[0])
 
 
-def build_NPP_QUBO_problem(S):
-    num_values = len(S)
+def build_NPP_QUBO_problem(numbers):
+    num_values = len(numbers)
     c = 0
     for i in range(num_values):
-        c += S[i]
+        c += numbers[i]
 
     QUBO = np.zeros((num_values, num_values))
     col_max = 0
@@ -46,9 +51,9 @@ def build_NPP_QUBO_problem(S):
         col_max += 1
         while col < col_max:
             if row == col:
-                QUBO[row][col] = S[row]*(S[row]-c)
+                QUBO[row][col] = numbers[row] * (numbers[row] - c)
             else:
-                QUBO[row][col] = S[row] * S[col]
+                QUBO[row][col] = numbers[row] * numbers[col]
                 QUBO[col][row] = QUBO[row][col]
             col += 1
         col = 0

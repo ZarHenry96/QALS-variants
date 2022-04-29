@@ -139,11 +139,11 @@ def main(config):
         data_filepath, num_values, max_value = load_npp_params(config)
 
         if data_filepath is not None:
-            S = utils.load_S(data_filepath)
+            S = utils.load_numbers(data_filepath)
             num_values, max_value = len(S), max(S)
 
         out_dir = os.path.join(config['root_out_dir'], 'NPP',
-                               f'n_{num_values}_range_{max_value}' + '_sim' if config['simulation'] else '',
+                               f'num_values_{num_values}_range_{max_value}' + '_sim' if config['simulation'] else '',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         qals_csv_log_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_qals_log.csv')
@@ -152,7 +152,7 @@ def main(config):
 
         data_file_copy_path = os.path.join(out_dir, f'npp_{num_values}_{max_value}_data.csv')
         if data_filepath is None:
-            S = utils.generate_and_save_S(num_values, max_value, data_file_copy_path)
+            S = utils.generate_and_save_numbers(num_values, max_value, data_file_copy_path)
         else:
             shutil.copy2(data_filepath, data_file_copy_path)
 
@@ -166,11 +166,11 @@ def main(config):
                                f'{problem_name}' + '_sim' if config['simulation'] else '',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
-        qals_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_log.csv')
+        qals_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_qals_log.csv')
         tabu_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_tabu_log.csv')
         qubo_matrix_csv_file = os.path.join(out_dir, f'qap_{problem_name}_qubo_matrix.csv')
 
-        shutil.copy2(data_filepath, out_dir)
+        shutil.copy2(data_filepath, os.path.join(out_dir, f'qap_{problem_name}_data.txt'))
 
         Q, penalty, qubo_size, y = utils.build_QAP_QUBO_problem(data_filepath)
 
@@ -185,11 +185,11 @@ def main(config):
                                f'nodes_{num_nodes}' + '_sim' if config['simulation'] else '',
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
-        qals_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_log.csv')
+        qals_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_qals_log.csv')
         tabu_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_tabu_log.csv')
         qubo_matrix_csv_file = os.path.join(out_dir, f'tsp_{num_nodes}_qubo_matrix.csv')
 
-        data_file_copy_path = os.path.join(out_dir, f'npp_{num_nodes}_data.csv')
+        data_file_copy_path = os.path.join(out_dir, f'tsp_{num_nodes}_data.csv')
         if data_filepath is None:
             nodes = tsp_utils.generate_and_save_nodes(num_nodes, data_file_copy_path)
         else:

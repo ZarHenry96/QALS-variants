@@ -10,7 +10,7 @@ from dimod import ising_to_qubo
 from qals.colors import Colors
 from qals.solvers import get_annealing_sampler, annealing, stub_solver
 from qals.topology import get_adj_matrix
-from qals.utils import now, csv_write
+from qals.utils import now, csv_write, tabu_to_string
 
 
 def function_f(Q, x):
@@ -207,7 +207,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         csv_write(csv_file=qals_csv_log_file, row=[0, max(f_one, f_two) if f_one != f_two else "null", f_star, p,
                                                    "null", "null", "null", z_prime if f_one != f_two else "null",
                                                    z_star])
-        csv_write(csv_file=tabu_csv_log_file, row=[0, S])
+        csv_write(csv_file=tabu_csv_log_file, row=[0, tabu_to_string(S)])
     except KeyboardInterrupt:
         exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
 
@@ -281,7 +281,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                       + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                       + f"] Took {iteration_timedelta} in total")
                 csv_write(csv_file=qals_csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
-            csv_write(csv_file=tabu_csv_log_file, row=[i, S])
+            csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             total_time = total_time + (time.time() - iteration_start_time)
 

@@ -5,7 +5,7 @@
   "root_out_dir": "results",
   "random_seed": 17,
   "topology": "pegasus",
-  "simulation": true,
+  "simulation": false,
   "tabu_type": "binary",
   "qals_params": {
     "d_min": 70,
