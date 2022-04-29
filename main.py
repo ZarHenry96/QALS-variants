@@ -1,4 +1,3 @@
-#!/usr/local/bin/python3
 import argparse
 import datetime
 import json
@@ -12,10 +11,16 @@ import time
 
 from os import listdir, makedirs
 from os.path import isfile, join
+
 from qals import qals, tsp_utils, utils
 from qals.colors import Colors
 
-np.set_printoptions(threshold=sys.maxsize)
+np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
+
+
+def add_to_log_string(variable, value):
+    padding = 5 + max(10, len(variable)) - len(str(variable))
+    return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
 def load_npp_params(config):
@@ -46,7 +51,7 @@ def load_npp_params(config):
 
 
 def select_qap_problem():
-    qap_files = [f for f in listdir("QAP/") if isfile(join("QAP/", f))]
+    qap_files = sorted([f for f in listdir("QAP/") if isfile(join("QAP/", f))])
 
     for i, element in enumerate(qap_files):
         print(f"  Write {i} for the problem {element.rsplit('.')[0]}")
@@ -196,7 +201,7 @@ def main(config):
     # Save the experiment configuration and the QUBO matrix
     with open(os.path.join(out_dir, 'config.json'), 'w') as json_config:
         json.dump(config, json_config, ensure_ascii=False, indent=4)
-    pd.DataFrame(Q, dtype=int).to_csv(qubo_matrix_csv_file, index=False, header=False)
+    pd.DataFrame(Q).to_csv(qubo_matrix_csv_file, index=False, header=False)
 
     print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" +
           Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
@@ -213,48 +218,50 @@ def main(config):
                  N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
                  q=qals_config['q'], Q=Q, topology=config['topology'], qals_csv_log_file=qals_csv_log_file,
                  tabu_csv_log_file=tabu_csv_log_file, tabu_type=config['tabu_type'], simulation=config['simulation'])
-    qubo_image = qals.function_f(Q, z_star).item()
+    min_value_found = qals.function_f(Q, z_star).item()
     total_timedelta = datetime.timedelta(seconds=int(time.time() - start_time))
 
     # Prepare the output string and files
     print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     log_string = str()
     if qubo_size < 16:
-        log_string += utils.add_to_log_string("Z*", z_star)
+        log_string += add_to_log_string("z*", z_star)
     else:
-        log_string += utils.add_to_log_string("Z*", "Too big to print, look into " +
+        log_string += add_to_log_string("z*", "Too long to be printed, look into " +
                                               out_dir + " for the complete result")
-    log_string += utils.add_to_log_string("f_Q value", round(qubo_image, 2))
+    log_string += add_to_log_string("f_Q value", round(min_value_found, 2))
 
     if npp:
-        diff_squared = (c**2 + 4*qubo_image)
-        log_string += utils.add_to_log_string("c", c) + utils.add_to_log_string("c**2", c ** 2) + \
-                      utils.add_to_log_string("diff**2", round(diff_squared, 2)) + \
-                      utils.add_to_log_string("diff", np.sqrt(diff_squared))
+        diff_squared = (c**2 + 4*min_value_found)
+        log_string += add_to_log_string("c", c) + add_to_log_string("c**2", c ** 2) + \
+                      add_to_log_string("diff**2", round(diff_squared, 2)) + \
+                      add_to_log_string("diff", np.sqrt(diff_squared))
 
         solution_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_solution.csv')
-        utils.csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "Q"])
-        utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S, z_star,
-                                                     Q if num_values < 5 else "too big"])
+        utils.csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
+        utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S,
+                                                     z_star, min_value_found])
     elif qap:
-        log_string += utils.add_to_log_string("y", y) + utils.add_to_log_string("Penalty", penalty) + \
-                      utils.add_to_log_string("Difference", round(y + qubo_image, 2))
+        log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
+                      add_to_log_string("Difference", round(y + min_value_found, 2))
         solution_file = os.path.join(out_dir, f'qap_{problem_name}_solution.csv')
-        utils.csv_write(csv_file=solution_file, row=["problem", "y", "penalty", "difference (y+minimum)", "z*", "Q"])
-        utils.csv_write(csv_file=solution_file, row=[problem_name, y, penalty, y + qubo_image,
-                                                     np.atleast_2d(z_star).T, Q])
+        utils.csv_write(csv_file=solution_file, row=["problem", "penalty", "y", "f_Q(z*)",
+                                                     "difference (y+f_Q(z*))", "z*"])
+        utils.csv_write(csv_file=solution_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
+                                                     z_star])
 
     elif tsp:
         output_df = pd.DataFrame(
-            columns=["Solution", "Cost", "Refinement", "Avg. response time", "Total time (w/o refinement)", "Z*"],
+            columns=["Solution", "Cost", "Refinement", "Avg. response time", "Total time (w/o refinement)",
+                     "z*", "f_Q(z*)"],
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )
         qals_output, log_string = \
             tsp_utils.refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, log_string, tsp_matrix,
-                                                            avg_response_time, total_timedelta)
+                                                            avg_response_time, total_timedelta, min_value_found)
         tsp_utils.add_TSP_info_to_out_df(output_df, qals_output)
 
-        tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, output_df, other_seeds,
+        tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, Q, output_df, other_seeds,
                             bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(os.path.join(out_dir, f'tsp_{num_nodes}_solution.csv'))

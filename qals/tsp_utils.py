@@ -1,10 +1,9 @@
-#!/usr/local/bin/python3
 #
 #
 #
-#   THE CODE IN THIS PYTHON SCRIPT IS NOT WRITTEN BY ME
-#       I ARRANGED AN ALREADY EXISTING SCRIPT FROM:
-#      https://github.com/BOHRTECHNOLOGY/quantum_tsp
+#   THE CODE CONTAINED IN THIS PYTHON SCRIPT HAS BEEN WRITTEN
+#          STARTING FROM THE FOLLOWING REPOSITORY:
+#       https://github.com/BOHRTECHNOLOGY/quantum_tsp
 #
 #
 #
@@ -20,7 +19,8 @@ from dwave.system.composites import EmbeddingComposite
 from dwave.system.samplers import DWaveSampler
 
 from qals.colors import Colors
-from qals.solvers import annealer, hybrid, stub_solver
+from qals.qals import function_f
+from qals.solvers import annealing, hybrid, stub_solver
 from qals.utils import now
 
 
@@ -145,20 +145,8 @@ def solve_tsp_brute_force(nodes_array):
     return np.array(best_permutation), round(best_cost, 2)
 
 
-def binary_state_to_points_order(binary_state):
-    points_order = []
-    number_of_points = int(np.sqrt(len(binary_state)))
-
-    for p in range(number_of_points):
-        for j in range(number_of_points):
-            if binary_state[number_of_points * p + j] == 1:
-                points_order.append(j)
-
-    return points_order
-
-
 def solve_tsp_annealer(qubo_dict, k):
-    response = annealer(qubo_dict, EmbeddingComposite(DWaveSampler()), k)
+    response = annealing(qubo_dict, EmbeddingComposite(DWaveSampler()), k)
 
     return np.array(response)
 
@@ -184,6 +172,18 @@ def check_solution_validity(z, num_nodes):
             visited_nodes.append(where)
 
     return valid
+
+
+def binary_state_to_points_order(binary_state):
+    points_order = []
+    number_of_points = int(np.sqrt(len(binary_state)))
+
+    for p in range(number_of_points):
+        for j in range(number_of_points):
+            if binary_state[number_of_points * p + j] == 1:
+                points_order.append(j)
+
+    return np.array(points_order)
 
 
 def advance(iter, rnd):
@@ -256,17 +256,17 @@ def refine_TSP_solution(original_solution):
             refined_solution[i] = it
             diff.remove(it)
 
-    return refined_solution
+    return np.array(refined_solution)
 
 
 def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string, tsp_matrix, avg_response_time,
-                                          total_timedelta):
+                                          total_timedelta, min_value_found):
     output_dict = dict()
     output_dict['type'] = method
 
     valid = check_solution_validity(z_star, num_nodes)
     if not valid:
-        output_dict['solution'] = list(refine_TSP_solution(z_star))
+        output_dict['solution'] = refine_TSP_solution(z_star)
         output_dict['refinement'] = True
         if log_string is not None:
             padding = 10
@@ -284,6 +284,7 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string,
     output_dict['tot_time'] = total_timedelta
 
     output_dict['z_star'] = z_star
+    output_dict['qubo_image'] = min_value_found
 
     return output_dict, log_string
 
@@ -294,11 +295,14 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['Refinement'][dictionary['type']] = dictionary['refinement']
     df['Avg. response time'][dictionary['type']] = dictionary['avg_resp_time']
     df['Total time (w/o refinement)'][dictionary['type']] = dictionary['tot_time']
-    df['Z*'][dictionary['type']] = dictionary['z_star']
+    df['z*'][dictionary['type']] = dictionary['z_star']
+    df['f_Q(z*)'][dictionary['type']] = dictionary['qubo_image']
 
 
-def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, random_seeds, bruteforce=True, d_wave=True, hybrid=True):
-    print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
+def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
+              bruteforce=True, d_wave=True, hybrid=True):
+    if bruteforce or d_wave or hybrid:
+        print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
 
     # bruteforce
     random.seed(random_seeds[0])
@@ -313,7 +317,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, random_seeds, brute
         bf['refinement'], bf['avg_resp_time'] = False, None
         bf['tot_time'] = timedelta(seconds=int(time.time()-start_bf)) if int(time.time()-start_bf) > 0 \
             else time.time()-start_bf
-        bf['z_star'] = []
+        bf['z_star'], bf['qubo_image'] = [], None
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
 
@@ -332,7 +336,8 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, random_seeds, brute
         total_time = timedelta(seconds=int(time.time()-start_qa)) if int(time.time()-start_qa) > 0 \
             else time.time()-start_qa
 
-        qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix, None, total_time)
+        qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix,
+                                                      None, total_time, function_f(Q, z_star).item())
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
         add_TSP_info_to_out_df(out_df, qa)
@@ -348,11 +353,11 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, out_df, random_seeds, brute
         total_time = timedelta(seconds=int(time.time()-start_hy)) if int(time.time()-start_hy) > 0 \
             else time.time()-start_hy
 
-        hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix, None, total_time)
+        hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix,
+                                                      None, total_time, function_f(Q, z_star).item())
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)
-        
-    print("\n\t" + Colors.BOLD + Colors.HEADER + "        TSP PROBLEM SOLVER END" + Colors.ENDC)
-    
-    return tsp_matrix, qubo_problem
+
+    if bruteforce or d_wave or hybrid:
+        print("\n\t" + Colors.BOLD + Colors.HEADER + "        TSP PROBLEM SOLVER END" + Colors.ENDC)

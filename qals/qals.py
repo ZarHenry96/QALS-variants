@@ -1,94 +1,20 @@
-#!/usr/bin/env python3
 import datetime
-import neal
 import numpy as np
 import random
 import sys
 import time
 
-from dwave.system.samplers import DWaveSampler
 from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
 
 from qals.colors import Colors
-from qals.solvers import annealer, stub_solver
-from qals.utils import now, csv_write, generate_chimera_topology, generate_pegasus_topology
-
-np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
+from qals.solvers import get_annealing_sampler, annealing, stub_solver
+from qals.topology import get_adj_matrix
+from qals.utils import now, csv_write
 
 
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
-
-
-def get_active_topology(sampler, n):
-    nodes = dict()
-    tmp = list(sampler.nodelist)
-    nodelist = list()
-    for i in range(n):
-        try:
-            nodelist.append(tmp[i])
-        except IndexError:
-            input(f"Error when reaching {i}-th element of tmp {len(tmp)}")
-
-    for i in nodelist:
-        nodes[i] = list()
-
-    for node_1, node_2 in sampler.edgelist:
-        if node_1 in nodelist and node_2 in nodelist:
-            nodes[node_1].append(node_2)
-            nodes[node_2].append(node_1)
-
-    if len(nodes) != n:
-        i = 1
-        while len(nodes) != n:
-            nodes[tmp[n+i]] = list()
-
-    return nodes
-
-
-def get_sampler_and_adjacency_matrix(simulation, topology, n):
-    if not simulation:
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-              + "Algorithm Started in Quantum Modality" + Colors.ENDC)
-
-        sampler = DWaveSampler({'topology__type': topology})
-
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-              + f"Using {topology} Topology \n" + Colors.ENDC)
-
-        A = get_active_topology(sampler, n)
-    else:
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-              + "Algorithm Started in Simulation Modality (ideal annealer topology & simulated annealing sampler)"
-              + Colors.ENDC)
-
-        sampler = neal.SimulatedAnnealingSampler()
-
-        if topology.lower() == 'chimera':
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN
-                  + "Using Chimera Topology \n" + Colors.ENDC)
-
-            if n <= 2048:
-                try:
-                    A = generate_chimera_topology(n)
-                except:
-                    print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
-                          + "] " + f"the required topology could not be generated",
-                          file=sys.stderr)
-                    exit(0)
-            else:
-                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
-                      + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (2048)",
-                      file=sys.stderr)
-                exit(0)
-        else:
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER
-                  + "Using Pegasus Topology \n" + Colors.ENDC)
-
-            A = generate_pegasus_topology(n)
-
-    return sampler, A
 
 
 def make_decision(probability):
@@ -103,8 +29,9 @@ def random_shuffle(dictionary):
     return dict(zip(keys, values))
 
 
-def fill(m, perm):
+def fill(m, perm, _n):
     n = len(perm)
+    assert n == _n
 
     filled = np.zeros(n, dtype=int)
     for i in range(n):
@@ -116,8 +43,9 @@ def fill(m, perm):
     return filled
 
 
-def invert(perm):
+def invert(perm, _n):
     n = len(perm)
+    assert n == _n
 
     inverse = np.zeros(n, dtype=int)
     for i in range(n):
@@ -135,8 +63,8 @@ def g(Q, A, oldperm, p, simulation):
             m[i] = i
 
     m = random_shuffle(m)
-    perm = fill(m, oldperm)
-    inverse = invert(perm)
+    perm = fill(m, oldperm, n)
+    inverse = invert(perm, n)
     
     Theta = dict()
     if simulation:
@@ -158,7 +86,7 @@ def g(Q, A, oldperm, p, simulation):
 
 def map_back(z, perm):
     n = len(z)
-    inverse = invert(perm)
+    inverse = invert(perm, n)
 
     z_ret = np.zeros(n, dtype=int)
 
@@ -184,18 +112,18 @@ def to_ising(z):
 
 def add_to_tabu(S, z_prime, n, tabu_type):
     if tabu_type == 'binary':
-        S = S + np.outer(z_prime, z_prime) - np.identity(n) + np.diagflat(z_prime)
+        S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int) + np.diagflat(z_prime)
     elif tabu_type == 'spin':
         z_prime_spin = to_ising(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n) + np.diagflat(z_prime_spin)
+        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int) + np.diagflat(z_prime_spin)
     elif tabu_type == 'binary_no_diag':
-        S = S + np.outer(z_prime, z_prime) - np.identity(n)
+        S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int)
     elif tabu_type == 'spin_no_diag':
         z_prime_spin = to_ising(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n)
+        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
     elif tabu_type == 'hopfield_like':
         z_prime_spin = to_ising(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n)
+        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
 
     return S
 
@@ -227,7 +155,11 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
 def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, qals_csv_log_file, tabu_csv_log_file,
         tabu_type, simulation):
     try:
-        sampler, A = get_sampler_and_adjacency_matrix(simulation, topology, n)
+        sampler, out_string = get_annealing_sampler(simulation, topology)
+        print(out_string)
+
+        A, out_string = get_adj_matrix(simulation, topology, sampler, n)
+        print(out_string)
 
         csv_write(csv_file=qals_csv_log_file, row=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
         csv_write(csv_file=tabu_csv_log_file, row=["i", "S"])
@@ -243,14 +175,14 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
         start_time = time.time()
-        z_one = map_back(annealer(Theta_one, sampler, k), m_one)
+        z_one = map_back(annealing(Theta_one, sampler, k), m_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN"
               + Colors.ENDC + "] ", end='')
 
         print("Working on z2...", end=' ')
         start_time = time.time()
-        z_two = map_back(annealer(Theta_two, sampler, k), m_two)
+        z_two = map_back(annealing(Theta_two, sampler, k), m_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in "+str(timedelta_z_two)+"\n")
 
@@ -268,7 +200,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             m_star = m_two
             z_prime = z_one
 
-        S = np.zeros(shape=(n, n))
+        S = np.zeros(shape=(n, n), dtype=int)
         if f_one != f_two:
             S = add_to_tabu(S, z_prime, n, tabu_type)
 
@@ -306,7 +238,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
             start_time = time.time()
-            z_prime = map_back(annealer(Theta_prime, sampler, k), m)
+            z_prime = map_back(annealing(Theta_prime, sampler, k), m)
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
             print("Ended in "+str(timedelta_z_prime))
 
