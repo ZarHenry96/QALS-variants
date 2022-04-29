@@ -115,7 +115,7 @@ def main(config):
     # Select (or load) the problem to run
     if config['problem'] is not None and config['problem'] != '':
         problem = config['problem']
-        print(problem)
+        print("\t\t\t " + Colors.OKCYAN + problem + Colors.ENDC + "\n")
     else:
         problem = input(Colors.OKCYAN + "Which problem would you like to run? (NPP, QAP, TSP)  " + Colors.ENDC)
         config['problem'] = problem.upper()
@@ -128,8 +128,8 @@ def main(config):
     elif problem.lower() == "tsp":
         tsp = True
     else:
-        print("[" + Colors.ERROR + "ERROR" + Colors.ENDC + "] string " + Colors.BOLD + problem + Colors.ENDC
-              + " is not valid", file=sys.stderr)
+        print("[" + Colors.ERROR + "ERROR" + Colors.ENDC + "] unsupported " + Colors.BOLD + problem + Colors.ENDC
+              + f" problem '{problem}'", file=sys.stderr)
         exit(0)
 
     # Select (or load) the problem parameters and build the QUBO matrix
@@ -203,7 +203,7 @@ def main(config):
         json.dump(config, json_config, ensure_ascii=False, indent=4)
     pd.DataFrame(Q).to_csv(qubo_matrix_csv_file, index=False, header=False)
 
-    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILDED" + Colors.ENDC + "\n\n\t\t" +
+    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILT" + Colors.ENDC + "\n\n\t\t" +
           Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
     if npp:
         print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")

@@ -161,7 +161,8 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         A, out_string = get_adj_matrix(simulation, topology, sampler, n)
         print(out_string)
 
-        csv_write(csv_file=qals_csv_log_file, row=["i", "f'", "f*", "p", "e", "d", "lambda", "z'", "z*"])
+        csv_write(csv_file=qals_csv_log_file, row=["i", "p", "lambda", "perturb", "non_perturb_f", "opt_accept",
+                                                   "subopt_accept", "e", "d", "f'", "f*", "z'", "z*", "non_perturb_z"])
         csv_write(csv_file=tabu_csv_log_file, row=["i", "S"])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
               + " - eta = " + str(eta) + " - i_max = " + str(i_max) + " - k = " + str(k) + " - lambda_0 = "
@@ -204,9 +205,9 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         if f_one != f_two:
             S = add_to_tabu(S, z_prime, n, tabu_type)
 
-        csv_write(csv_file=qals_csv_log_file, row=[0, max(f_one, f_two) if f_one != f_two else "null", f_star, p,
-                                                   "null", "null", "null", z_prime if f_one != f_two else "null",
-                                                   z_star])
+        csv_write(csv_file=qals_csv_log_file, row=[0, p, lambda_zero, None, None, None, None, None, None,
+                                                   max(f_one, f_two) if f_one != f_two else None, f_star,
+                                                   z_prime if f_one != f_two else None, z_star, None])
         csv_write(csv_file=tabu_csv_log_file, row=[0, tabu_to_string(S)])
     except KeyboardInterrupt:
         exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
@@ -242,13 +243,20 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
             print("Ended in "+str(timedelta_z_prime))
 
+            perturbation, non_perturbed_z, non_perturbed_f, optimal_acceptance, suboptimal_acceptance = \
+                False, None, None, False, False
+
             if make_decision(q):
+                perturbation = True
+                non_perturbed_z = np.copy(z_prime)
+                non_perturbed_f = function_f(Q, z_prime).item()
                 z_prime = h(z_prime, p)
 
             if (z_prime != z_star).any():
                 f_prime = function_f(Q, z_prime).item()
                 
                 if f_prime < f_star:
+                    optimal_acceptance = True
                     z_prime, z_star = z_star, z_prime
                     f_star = f_prime
                     m_star = m
@@ -258,6 +266,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                 else:
                     d = d + 1
                     if make_decision((p-p_delta)**(f_prime-f_star)):
+                        suboptimal_acceptance = True
                         z_prime, z_star = z_star, z_prime
                         f_star = f_prime
                         m_star = m
@@ -269,18 +278,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             
             iteration_timedelta = datetime.timedelta(seconds=(time.time()-iteration_start_time))
 
-            if f_prime is not None:
-                print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
-                      + f"] f_prime = {round(f_prime, 2)}, f_star = {round(f_star, 2)}, p = {p}, e = {e}, d = {d} "
-                        f"and lambda = {round(lamda_value, 5)}\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN
-                      + "DATA" + Colors.ENDC + f"] Took {iteration_timedelta} in total")
-                csv_write(csv_file=qals_csv_log_file, row=[i, f_prime, f_star, p, e, d, lamda_value, z_prime, z_star])
-            else:
-                print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC +
-                      f" No variations on f and z. p = {p}, e = {e}, d = {d} and lambda = {round(lamda_value, 5)}\n"
-                      + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
-                      + f"] Took {iteration_timedelta} in total")
-                csv_write(csv_file=qals_csv_log_file, row=[i, "null", f_star, p, e, d, lamda_value, "null", z_star])
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
+                  + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lamda_value, 5)}, e = {e}, and d = {d}\n"
+                  + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC + f"] "
+                  + "Took {iteration_timedelta} in total")
+            csv_write(csv_file=qals_csv_log_file, row=[i, p, lamda_value, perturbation, non_perturbed_f,
+                                                       optimal_acceptance, suboptimal_acceptance, e, d, f_prime,
+                                                       f_star, z_prime if f_prime else None, z_star, non_perturbed_z])
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             total_time = total_time + (time.time() - iteration_start_time)
