@@ -165,9 +165,10 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                                                    "subopt_accept", "e", "d", "f'", "f*", "z'", "z*", "non_perturb_z"])
         csv_write(csv_file=tabu_csv_log_file, row=["i", "S"])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
-              + " - eta = " + str(eta) + " - i_max = " + str(i_max) + " - k = " + str(k) + " - lambda_0 = "
-              + str(lambda_zero) + " - n = " + str(n) + " - N = " + str(N) + " - N_max = " + str(N_max)
-              + " - p_delta = " + str(p_delta) + " - q = " + str(q) + "\n")
+              + ", eta = " + str(eta) + ", i_max = " + str(i_max) + ", k = " + str(k) + ", lambda_0 = "
+              + str(lambda_zero))
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] n = " + str(n) + ", N = "
+              + str(N) + ", N_max = " + str(N_max) + ", p_delta = " + str(p_delta) + ", q = " + str(q) + "\n")
 
         p = 1
 
@@ -219,7 +220,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     total_time = 0
     
     while True:
-        print("-" * 110)
+        print("-" * 116)
         iteration_start_time = time.time()
         if total_time:
             string = str(datetime.timedelta(seconds=((total_time/i) * (i_max - i))))
@@ -289,7 +290,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
             total_time = total_time + (time.time() - iteration_start_time)
 
-            print("-" * 110 + "\n")
+            print("-" * 116 + "\n")
             if (i == i_max) or ((e + d >= N_max) and (d < d_min)):
                 if i != i_max:
                     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Exited at cycle "
