@@ -54,7 +54,7 @@ def select_qap_problem():
     qap_files = sorted([f for f in listdir("QAP/") if isfile(join("QAP/", f))])
 
     for i, element in enumerate(qap_files):
-        print(f"  Write {i} for the problem {element.rsplit('.')[0]}")
+        print(f"    Write {i} for the problem {element.rsplit('.')[0]}")
 
     problem = int(input("Which problem do you want to solve? "))
     filepath = "QAP/" + qap_files[problem]
@@ -143,7 +143,7 @@ def main(config):
             num_values, max_value = len(S), max(S)
 
         out_dir = os.path.join(config['root_out_dir'], 'NPP',
-                               f'num_values_{num_values}_range_{max_value}' + '_sim' if config['simulation'] else '',
+                               f'num_values_{num_values}_range_{max_value}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         qals_csv_log_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_qals_log.csv')
@@ -163,7 +163,7 @@ def main(config):
         data_filepath, problem_name = load_qap_params(config)
 
         out_dir = os.path.join(config['root_out_dir'], 'QAP',
-                               f'{problem_name}' + '_sim' if config['simulation'] else '',
+                               f'{problem_name}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         qals_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_qals_log.csv')
@@ -182,7 +182,7 @@ def main(config):
             num_nodes = len(nodes)
 
         out_dir = os.path.join(config['root_out_dir'], 'TSP',
-                               f'nodes_{num_nodes}' + '_sim' if config['simulation'] else '',
+                               f'nodes_{num_nodes}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         qals_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_qals_log.csv')
@@ -239,7 +239,7 @@ def main(config):
 
         solution_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_solution.csv')
         utils.csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
-        utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), S,
+        utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), np.array(S),
                                                      z_star, min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \

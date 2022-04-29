@@ -309,5 +309,5 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
           + str(avg_response_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
           + "] Total time: " + str(total_timedelta) + "\n")
 
-    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], avg_response_time
+    return z_star, avg_response_time
 
