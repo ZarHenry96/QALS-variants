@@ -167,7 +167,7 @@ def main(config):
         os.makedirs(out_dir, exist_ok=True)
         out_files_prefix = os.path.join(out_dir, f'qap_{problem_name}')
 
-        shutil.copy2(data_filepath, os.path.join(out_dir, f'{out_files_prefix}_data.txt'))
+        shutil.copy2(data_filepath, f'{out_files_prefix}_data.txt')
 
         Q, penalty, qubo_size, y = utils.build_QAP_QUBO_problem(data_filepath)
 
@@ -241,8 +241,9 @@ def main(config):
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
         utils.csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
-        utils.csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), np.array(S),
-                                                         z_star, min_value_found])
+        utils.csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
+                                                         utils.numpy_vector_to_string(np.array(S)), z_star,
+                                                         min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
                       add_to_log_string("Difference", round(y + min_value_found, 2))

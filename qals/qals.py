@@ -11,7 +11,7 @@ from dimod import ising_to_qubo
 from qals.colors import Colors
 from qals.solvers import get_annealing_sampler, annealing, stub_solver
 from qals.topology import get_adj_matrix
-from qals.utils import now, csv_write, tabu_to_string
+from qals.utils import now, csv_write, numpy_vector_to_string, tabu_to_string
 
 
 def function_f(Q, x):
@@ -155,7 +155,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         A, out_string = get_adj_matrix(simulation, topology, sampler, n)
         with open(adj_matrix_json_file, 'w') as jf:
-            json.dump(A, jf, ensure_ascii=False, indent=4)
+            json.dump(A, jf, ensure_ascii=False, indent=(4 if not simulation else None))
         print(out_string)
 
         csv_write(csv_file=qals_csv_log_file, row=["i (end)", "p", "lambda", "perturb", "non_perturbed_f", "opt_accept",
@@ -209,7 +209,8 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         csv_write(csv_file=qals_csv_log_file, row=[0, p, lambda_zero, None, None, None, None, 0, 0,
                                                    f_prime if f_one != f_two else None, f_star,
                                                    z_prime if (z_one != z_two).any() else None, z_star, None,
-                                                   perm_prime, perm_star])
+                                                   numpy_vector_to_string(perm_prime),
+                                                   numpy_vector_to_string(perm_star)])
         csv_write(csv_file=tabu_csv_log_file, row=[0, tabu_to_string(S)])
     except KeyboardInterrupt:
         exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
@@ -287,7 +288,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             csv_write(csv_file=qals_csv_log_file, row=[i, p, lamda_value, perturbation, non_perturbed_f,
                                                        optimal_acceptance, suboptimal_acceptance, e, d, f_prime,
                                                        f_star, z_prime if f_prime else None, z_star, non_perturbed_z,
-                                                       perm, perm_star])
+                                                       numpy_vector_to_string(perm), numpy_vector_to_string(perm_star)])
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             total_time = total_time + (time.time() - iteration_start_time)

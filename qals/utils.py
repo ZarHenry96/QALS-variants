@@ -16,6 +16,10 @@ def csv_write(csv_file, row):
         writer.writerow(row)
 
 
+def numpy_vector_to_string(vector):
+    return '[' + ' '.join([str(x) for x in vector]) + ']'
+
+
 def tabu_to_string(S):
     string = '[' + ' '.join(['['+' '.join([str(x) for x in row])+']' for row in S]) + ']'
     return string
