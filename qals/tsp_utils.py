@@ -315,8 +315,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         start_bf = time.time()
         bf['solution'], bf['cost'] = solve_tsp_brute_force(nodes_array)
         bf['refinement'], bf['avg_resp_time'] = False, None
-        bf['tot_time'] = timedelta(seconds=int(time.time()-start_bf)) if int(time.time()-start_bf) > 0 \
-            else time.time()-start_bf
+        bf['tot_time'] = timedelta(seconds=(time.time()-start_bf))
         bf['z_star'], bf['qubo_image'] = [], None
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
@@ -333,8 +332,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
 
         start_qa = time.time()
         z_star = solve_tsp_annealer(qubo_problem, 1000)
-        total_time = timedelta(seconds=int(time.time()-start_qa)) if int(time.time()-start_qa) > 0 \
-            else time.time()-start_qa
+        total_time = timedelta(seconds=(time.time()-start_qa))
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star).item())
@@ -350,8 +348,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
 
         start_hy = time.time()
         z_star = solve_tsp_hybrid(qubo_problem)
-        total_time = timedelta(seconds=int(time.time()-start_hy)) if int(time.time()-start_hy) > 0 \
-            else time.time()-start_hy
+        total_time = timedelta(seconds=(time.time()-start_hy))
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star).item())

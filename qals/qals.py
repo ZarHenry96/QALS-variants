@@ -70,12 +70,12 @@ def g(Q, A, old_perm, p, simulation):
             l = inverse[col]
             Theta[row, col] = Q[k][l]
     else:
-        support = dict(zip(A.keys(), np.arange(len(Q))))
+        node_pos_dict = dict(zip(A.keys(), np.arange(len(Q))))
         for key in list(A.keys()):
-            k = inverse[support[key]]
+            k = inverse[node_pos_dict[key]]
             Theta[key, key] = Q[k][k]
             for elem in A[key]:
-                l = inverse[support[elem]]
+                l = inverse[node_pos_dict[elem]]
                 Theta[key, elem] = Q[k][l]
               
     return Theta, perm, inverse
@@ -308,9 +308,9 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
     total_timedelta = datetime.timedelta(seconds=total_time)
     if i != 1:
-        avg_response_time = datetime.timedelta(seconds=int(total_time/(i-1)))
+        avg_response_time = datetime.timedelta(seconds=(total_time/(i-1)))
     else:
-        avg_response_time = datetime.timedelta(seconds=int(total_time))
+        avg_response_time = datetime.timedelta(seconds=total_time)
     
     print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average response time: "
           + str(avg_response_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC

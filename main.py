@@ -222,7 +222,7 @@ def main(config):
                  qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
                  tabu_type=config['tabu_type'], simulation=config['simulation'])
     min_value_found = qals.function_f(Q, z_star).item()
-    total_timedelta = datetime.timedelta(seconds=int(time.time() - start_time))
+    total_timedelta = datetime.timedelta(seconds=(time.time() - start_time))
 
     # Prepare the output string and files
     print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
