@@ -16,7 +16,7 @@ def csv_write(csv_file, row):
         writer.writerow(row)
 
 
-def numpy_vector_to_string(vector):
+def np_vector_to_string(vector):
     return '[' + ' '.join([str(x) for x in vector]) + ']'
 
 

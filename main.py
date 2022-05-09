@@ -242,7 +242,7 @@ def main(config):
 
         utils.csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
         utils.csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
-                                                         utils.numpy_vector_to_string(np.array(S)), z_star,
+                                                         utils.np_vector_to_string(np.array(S)), z_star,
                                                          min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
