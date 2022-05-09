@@ -1,4 +1,5 @@
 import datetime
+import json
 import numpy as np
 import random
 import sys
@@ -29,23 +30,27 @@ def random_shuffle(dictionary):
     return dict(zip(keys, values))
 
 
-def fill(m, perm, _n):
-    n = len(perm)
-    assert n == _n
+def generate_perm(old_perm, p):
+    n = len(old_perm)
 
-    filled = np.zeros(n, dtype=int)
+    assoc_map = dict()
     for i in range(n):
-        if i in m.keys():
-            filled[i] = perm[m[i]]
+        if make_decision(p):
+            assoc_map[i] = i
+    assoc_map = random_shuffle(assoc_map)
+
+    perm = np.zeros(n, dtype=int)
+    for i in range(n):
+        if i in assoc_map.keys():
+            perm[i] = old_perm[assoc_map[i]]
         else:
-            filled[i] = perm[i]
+            perm[i] = old_perm[i]
 
-    return filled
+    return perm
 
 
-def invert(perm, _n):
+def invert(perm):
     n = len(perm)
-    assert n == _n
 
     inverse = np.zeros(n, dtype=int)
     for i in range(n):
@@ -54,17 +59,9 @@ def invert(perm, _n):
     return inverse
 
 
-def g(Q, A, oldperm, p, simulation):
-    n = len(Q)
-
-    m = dict()
-    for i in range(n):
-        if make_decision(p):
-            m[i] = i
-
-    m = random_shuffle(m)
-    perm = fill(m, oldperm, n)
-    inverse = invert(perm, n)
+def g(Q, A, old_perm, p, simulation):
+    perm = generate_perm(old_perm, p)
+    inverse = invert(perm)
     
     Theta = dict()
     if simulation:
@@ -73,7 +70,7 @@ def g(Q, A, oldperm, p, simulation):
             l = inverse[col]
             Theta[row, col] = Q[k][l]
     else:
-        support = dict(zip(A.keys(), np.arange(n))) 
+        support = dict(zip(A.keys(), np.arange(len(Q))))
         for key in list(A.keys()):
             k = inverse[support[key]]
             Theta[key, key] = Q[k][k]
@@ -81,13 +78,11 @@ def g(Q, A, oldperm, p, simulation):
                 l = inverse[support[elem]]
                 Theta[key, elem] = Q[k][l]
               
-    return Theta, perm
+    return Theta, perm, inverse
 
 
-def map_back(z, perm):
+def map_back(z, inverse):
     n = len(z)
-    inverse = invert(perm, n)
-
     z_ret = np.zeros(n, dtype=int)
 
     for i in range(n):
@@ -135,10 +130,10 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     elif tabu_type in ['spin', 'spin_no_diag']:
         # Compute linear (h) and quadratic (J) coefficients
         bqm = BinaryQuadraticModel.from_qubo(S)
-        h, J = bqm.linear, bqm.quadratic
+        h_values, J = bqm.linear, bqm.quadratic
 
         # Convert Ising {-1,+1} formulation into QUBO {0,1}
-        S_binary_dict, offset = ising_to_qubo(h, J)
+        S_binary_dict, offset = ising_to_qubo(h_values, J)
         S_binary = np.zeros(shape=(n, n))
         for (i, j) in S_binary_dict.keys():
             S_binary[i][j] = S_binary_dict[i, j]
@@ -152,18 +147,21 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     return Q_prime
 
 
-def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, qals_csv_log_file, tabu_csv_log_file,
-        tabu_type, simulation):
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, adj_matrix_json_file,
+        qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
     try:
         sampler, out_string = get_annealing_sampler(simulation, topology)
         print(out_string)
 
         A, out_string = get_adj_matrix(simulation, topology, sampler, n)
+        with open(adj_matrix_json_file, 'w') as jf:
+            json.dump(A, jf, ensure_ascii=False, indent=4)
         print(out_string)
 
-        csv_write(csv_file=qals_csv_log_file, row=["i", "p", "lambda", "perturb", "non_perturb_f", "opt_accept",
-                                                   "subopt_accept", "e", "d", "f'", "f*", "z'", "z*", "non_perturb_z"])
-        csv_write(csv_file=tabu_csv_log_file, row=["i", "S"])
+        csv_write(csv_file=qals_csv_log_file, row=["i (end)", "p", "lambda", "perturb", "non_perturbed_f", "opt_accept",
+                                                   "subopt_accept", "e", "d", "f'", "f*", "z'", "z*", "non_perturbed_z",
+                                                   "perm'", "perm*"])
+        csv_write(csv_file=tabu_csv_log_file, row=["i (end)", "S"])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
               + ", eta = " + str(eta) + ", i_max = " + str(i_max) + ", k = " + str(k) + ", lambda_0 = "
               + str(lambda_zero))
@@ -172,19 +170,19 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         p = 1
 
-        Theta_one, m_one = g(Q, A, np.arange(n), p, simulation)
-        Theta_two, m_two = g(Q, A, np.arange(n), p, simulation)
+        Theta_one, perm_one, inverse_one = g(Q, A, np.arange(n), p, simulation)
+        Theta_two, perm_two, inverse_two = g(Q, A, np.arange(n), p, simulation)
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
         start_time = time.time()
-        z_one = map_back(annealing(Theta_one, sampler, k), m_one)
+        z_one = map_back(annealing(Theta_one, sampler, k), inverse_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN"
               + Colors.ENDC + "] ", end='')
 
         print("Working on z2...", end=' ')
         start_time = time.time()
-        z_two = map_back(annealing(Theta_two, sampler, k), m_two)
+        z_two = map_back(annealing(Theta_two, sampler, k), inverse_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in "+str(timedelta_z_two)+"\n")
 
@@ -194,21 +192,24 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         if f_one < f_two:
             z_star = z_one
             f_star = f_one
-            m_star = m_one
+            perm_star = perm_one
             z_prime = z_two
+            f_prime, perm_prime = f_two, perm_two
         else:
             z_star = z_two
             f_star = f_two
-            m_star = m_two
+            perm_star = perm_two
             z_prime = z_one
+            f_prime, perm_prime = f_one, perm_one
 
         S = np.zeros(shape=(n, n), dtype=int)
         if f_one != f_two:
             S = add_to_tabu(S, z_prime, n, tabu_type)
 
-        csv_write(csv_file=qals_csv_log_file, row=[0, p, lambda_zero, None, None, None, None, None, None,
-                                                   max(f_one, f_two) if f_one != f_two else None, f_star,
-                                                   z_prime if f_one != f_two else None, z_star, None])
+        csv_write(csv_file=qals_csv_log_file, row=[0, p, lambda_zero, None, None, None, None, 0, 0,
+                                                   f_prime if f_one != f_two else None, f_star,
+                                                   z_prime if (z_one != z_two).any() else None, z_star, None,
+                                                   perm_prime, perm_star])
         csv_write(csv_file=tabu_csv_log_file, row=[0, tabu_to_string(S)])
     except KeyboardInterrupt:
         exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
@@ -227,7 +228,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         else:
             string = "Not yet available"
         
-        print(now() +" [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
               f"] Cycle {i}/{i_max} -- {round((((i - 1) / i_max) * 100), 2)}% -- ETA {string}")
 
         try:
@@ -236,11 +237,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             if i % N == 0:
                 p = p - ((p - p_delta)*eta)
 
-            Theta_prime, m = g(Q_prime, A, m_star, p, simulation)
+            Theta_prime, perm, inverse = g(Q_prime, A, perm_star, p, simulation)
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
             start_time = time.time()
-            z_prime = map_back(annealing(Theta_prime, sampler, k), m)
+            z_prime = map_back(annealing(Theta_prime, sampler, k), inverse)
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
             print("Ended in "+str(timedelta_z_prime))
 
@@ -260,7 +261,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                     optimal_acceptance = True
                     z_prime, z_star = z_star, z_prime
                     f_star = f_prime
-                    m_star = m
+                    perm_star = perm
                     e = 0
                     d = 0
                     S = add_to_tabu(S, z_prime, n, tabu_type)
@@ -270,7 +271,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                         suboptimal_acceptance = True
                         z_prime, z_star = z_star, z_prime
                         f_star = f_prime
-                        m_star = m
+                        perm_star = perm
                         e = 0
                 lamda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
             else:
@@ -282,10 +283,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                   + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lamda_value, 5)}, e = {e}, and d = {d}\n"
                   + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC + f"] "
-                  + "Took {iteration_timedelta} in total")
+                  + f"Took {iteration_timedelta} in total")
             csv_write(csv_file=qals_csv_log_file, row=[i, p, lamda_value, perturbation, non_perturbed_f,
                                                        optimal_acceptance, suboptimal_acceptance, e, d, f_prime,
-                                                       f_star, z_prime if f_prime else None, z_star, non_perturbed_z])
+                                                       f_star, z_prime if f_prime else None, z_star, non_perturbed_z,
+                                                       perm, perm_star])
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             total_time = total_time + (time.time() - iteration_start_time)
@@ -315,4 +317,3 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
           + "] Total time: " + str(total_timedelta) + "\n")
 
     return z_star, avg_response_time
-

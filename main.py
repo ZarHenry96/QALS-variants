@@ -38,7 +38,7 @@ def load_npp_params(config):
             num_values = int(input("Insert the desired number of values: "))
             while num_values <= 0:
                 num_values = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid number of values" + Colors.ENDC
-                              + "] Insert the desired number of values: "))
+                                       + "] Insert the desired number of values: "))
             config['problem_params']['num_values'] = num_values
         if max_value is None:
             max_value = int(input("Insert the upper limit of the generation interval: "))
@@ -91,7 +91,8 @@ def load_tsp_params(config):
             num_nodes = int(input("Insert the desired number of nodes (cities), the allowed range is [0, 11]: "))
             while num_nodes <= 0 or num_nodes > 12:
                 num_nodes = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid number of nodes" + Colors.ENDC
-                              + "] Insert the desired number of nodes (cities), the allowed range is [0, 11]: "))
+                                      + "] Insert the desired number of nodes (cities), the allowed range is [0, 11]: ")
+                                )
             config['problem_params']['num_nodes'] = num_nodes
 
     bruteforce, dwave, hybrid = False, False, False
@@ -146,11 +147,9 @@ def main(config):
                                f'num_values_{num_values}_range_{max_value}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
-        qals_csv_log_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_qals_log.csv')
-        tabu_csv_log_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_tabu_log.csv')
-        qubo_matrix_csv_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_qubo_matrix.csv')
+        out_files_prefix = os.path.join(out_dir, f'npp_{num_values}_{max_value}')
 
-        data_file_copy_path = os.path.join(out_dir, f'npp_{num_values}_{max_value}_data.csv')
+        data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
             S = utils.generate_and_save_numbers(num_values, max_value, data_file_copy_path)
         else:
@@ -166,11 +165,9 @@ def main(config):
                                f'{problem_name}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
-        qals_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_qals_log.csv')
-        tabu_csv_log_file = os.path.join(out_dir, f'qap_{problem_name}_tabu_log.csv')
-        qubo_matrix_csv_file = os.path.join(out_dir, f'qap_{problem_name}_qubo_matrix.csv')
+        out_files_prefix = os.path.join(out_dir, f'qap_{problem_name}')
 
-        shutil.copy2(data_filepath, os.path.join(out_dir, f'qap_{problem_name}_data.txt'))
+        shutil.copy2(data_filepath, os.path.join(out_dir, f'{out_files_prefix}_data.txt'))
 
         Q, penalty, qubo_size, y = utils.build_QAP_QUBO_problem(data_filepath)
 
@@ -185,11 +182,9 @@ def main(config):
                                f'nodes_{num_nodes}' + ('_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
-        qals_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_qals_log.csv')
-        tabu_csv_log_file = os.path.join(out_dir, f'tsp_{num_nodes}_tabu_log.csv')
-        qubo_matrix_csv_file = os.path.join(out_dir, f'tsp_{num_nodes}_qubo_matrix.csv')
+        out_files_prefix = os.path.join(out_dir,  f'tsp_{num_nodes}')
 
-        data_file_copy_path = os.path.join(out_dir, f'tsp_{num_nodes}_data.csv')
+        data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
             nodes = tsp_utils.generate_and_save_nodes(num_nodes, data_file_copy_path)
         else:
@@ -197,6 +192,13 @@ def main(config):
 
         qubo_size = num_nodes ** 2
         qubo_problem, Q, tsp_matrix = tsp_utils.build_TSP_QUBO_problem(nodes, qubo_size)
+
+    # Output files
+    qubo_matrix_csv_file = f'{out_files_prefix}_qubo_matrix.csv'
+    adj_matrix_json_file = f'{out_files_prefix}_adj_matrix.json'
+    qals_csv_log_file = f'{out_files_prefix}_qals_log.csv'
+    tabu_csv_log_file = f'{out_files_prefix}_tabu_log.csv'
+    solution_csv_file = f'{out_files_prefix}_solution.csv'
 
     # Save the experiment configuration and the QUBO matrix
     with open(os.path.join(out_dir, 'config.json'), 'w') as json_config:
@@ -216,8 +218,9 @@ def main(config):
         qals.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
                  k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
                  N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
-                 q=qals_config['q'], Q=Q, topology=config['topology'], qals_csv_log_file=qals_csv_log_file,
-                 tabu_csv_log_file=tabu_csv_log_file, tabu_type=config['tabu_type'], simulation=config['simulation'])
+                 q=qals_config['q'], Q=Q, topology=config['topology'], adj_matrix_json_file=adj_matrix_json_file,
+                 qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
+                 tabu_type=config['tabu_type'], simulation=config['simulation'])
     min_value_found = qals.function_f(Q, z_star).item()
     total_timedelta = datetime.timedelta(seconds=int(time.time() - start_time))
 
@@ -237,18 +240,16 @@ def main(config):
                       add_to_log_string("diff**2", round(diff_squared, 2)) + \
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
-        solution_file = os.path.join(out_dir, f'npp_{num_values}_{max_value}_solution.csv')
-        utils.csv_write(csv_file=solution_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
-        utils.csv_write(csv_file=solution_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), np.array(S),
-                                                     z_star, min_value_found])
+        utils.csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
+        utils.csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared), np.array(S),
+                                                         z_star, min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
                       add_to_log_string("Difference", round(y + min_value_found, 2))
-        solution_file = os.path.join(out_dir, f'qap_{problem_name}_solution.csv')
-        utils.csv_write(csv_file=solution_file, row=["problem", "penalty", "y", "f_Q(z*)",
-                                                     "difference (y+f_Q(z*))", "z*"])
-        utils.csv_write(csv_file=solution_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
-                                                     z_star])
+        utils.csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "y", "f_Q(z*)",
+                                                         "difference (y+f_Q(z*))", "z*"])
+        utils.csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
+                                                         z_star])
 
     elif tsp:
         output_df = pd.DataFrame(
@@ -264,7 +265,7 @@ def main(config):
         tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, Q, output_df, other_seeds,
                             bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
-        output_df.to_csv(os.path.join(out_dir, f'tsp_{num_nodes}_solution.csv'))
+        output_df.to_csv(solution_csv_file)
     
     print(log_string)
 
