@@ -217,7 +217,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     e = 0
     d = 0
     i = 1
-    lamda_value = lambda_zero
+    lambda_value = lambda_zero
     total_time = 0
     
     while True:
@@ -232,7 +232,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
               f"] Cycle {i}/{i_max} -- {round((((i - 1) / i_max) * 100), 2)}% -- ETA {string}")
 
         try:
-            Q_prime = sum_Q_and_tabu(Q, S, lamda_value, n, tabu_type)
+            Q_prime = sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type)
             
             if i % N == 0:
                 p = p - ((p - p_delta)*eta)
@@ -273,7 +273,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                         f_star = f_prime
                         perm_star = perm
                         e = 0
-                lamda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
+                lambda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
             else:
                 f_prime = None
                 e = e + 1
@@ -281,11 +281,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             iteration_timedelta = datetime.timedelta(seconds=(time.time()-iteration_start_time))
 
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
-                  + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lamda_value, 5)}, e = {e}, and d = {d}\n"
+                  + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lambda_value, 5)}, e = {e}, and d = {d}\n"
                   + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC + f"] "
                   + f"Took {iteration_timedelta} in total")
             csv_write(csv_file=qals_csv_log_file, row=[i, p, perturbation, optimal_acceptance, suboptimal_acceptance,
-                                                       e, d, lamda_value, f_prime, f_star, non_perturbed_f,
+                                                       e, d, lambda_value, f_prime, f_star, non_perturbed_f,
                                                        z_prime if f_prime else None, z_star, non_perturbed_z,
                                                        np_vector_to_string(perm), np_vector_to_string(perm_star)])
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
