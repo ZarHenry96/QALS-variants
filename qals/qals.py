@@ -30,7 +30,7 @@ def random_shuffle(dictionary):
     return dict(zip(keys, values))
 
 
-def generate_perm(old_perm, p):
+def g(old_perm, p):
     n = len(old_perm)
 
     assoc_map = dict()
@@ -59,10 +59,7 @@ def invert(perm):
     return inverse
 
 
-def g(Q, A, old_perm, p, simulation):
-    perm = generate_perm(old_perm, p)
-    inverse = invert(perm)
-    
+def generate_weight_matrix(Q, inverse, A, simulation):
     Theta = dict()
     if simulation:
         for row, col in A:
@@ -78,7 +75,7 @@ def g(Q, A, old_perm, p, simulation):
                 l = inverse[node_pos_dict[elem]]
                 Theta[key, elem] = Q[k][l]
               
-    return Theta, perm, inverse
+    return Theta
 
 
 def map_back(z, inverse):
@@ -170,8 +167,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         p = 1
 
-        Theta_one, perm_one, inverse_one = g(Q, A, np.arange(n), p, simulation)
-        Theta_two, perm_two, inverse_two = g(Q, A, np.arange(n), p, simulation)
+        perm_one = g(np.arange(n), p)
+        inverse_one = invert(perm_one)
+        Theta_one = generate_weight_matrix(Q, inverse_one, A, simulation)
+
+        perm_two = g(np.arange(n), p)
+        inverse_two = invert(perm_two)
+        Theta_two = generate_weight_matrix(Q, inverse_two, A, simulation)
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
         start_time = time.time()
@@ -237,7 +239,9 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             if i % N == 0:
                 p = p - ((p - p_delta)*eta)
 
-            Theta_prime, perm, inverse = g(Q_prime, A, perm_star, p, simulation)
+            perm = g(perm_star, p)
+            inverse = invert(perm)
+            Theta_prime = generate_weight_matrix(Q_prime, inverse, A, simulation)
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
             start_time = time.time()
