@@ -4,8 +4,7 @@ import time
 
 from dwave.system.samplers import DWaveSampler
 
-from qals.colors import Colors
-from qals.utils import now
+from qals.utils import Colors, now
 
 
 def get_annealing_sampler(simulation, topology):

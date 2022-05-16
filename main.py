@@ -9,11 +9,14 @@ import shutil
 import sys
 import time
 
-from os import listdir, makedirs
-from os.path import isfile, join
+from qals import qals_algorithm
+from qals.utils import Colors, csv_write, np_vector_to_string
 
-from qals import qals, tsp_utils, utils
-from qals.colors import Colors
+from problems_utils.npp import load_npp_params, load_numbers, generate_and_save_numbers, build_NPP_QUBO_problem
+from problems_utils.qap import load_qap_params, build_QAP_QUBO_problem
+from problems_utils.tsp import load_tsp_params, load_nodes, generate_and_save_nodes, build_TSP_QUBO_problem, \
+    refine_TSP_solution_and_format_output, add_TSP_info_to_out_df, solve_TSP
+
 
 np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
 
@@ -23,95 +26,13 @@ def add_to_log_string(variable, value):
     return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
-def load_npp_params(config):
-    data_filepath, num_values, max_value = None, None, None
-    if len(config['problem_params']) != 0:
-        data_filepath = config['problem_params']['npp_data_file'] \
-            if 'npp_data_file' in config['problem_params'] and \
-               os.path.exists(config['problem_params']['npp_data_file']) \
-            else data_filepath
-        num_values = config['problem_params']['num_values'] if 'num_values' in config['problem_params'] else num_values
-        max_value = config['problem_params']['max_value'] if 'max_value' in config['problem_params'] else max_value
-
-    if data_filepath is None:
-        if num_values is None:
-            num_values = int(input("Insert the desired number of values: "))
-            while num_values <= 0:
-                num_values = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid number of values" + Colors.ENDC
-                                       + "] Insert the desired number of values: "))
-            config['problem_params']['num_values'] = num_values
-        if max_value is None:
-            max_value = int(input("Insert the upper limit of the generation interval: "))
-            while max_value <= 0:
-                max_value = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid value" + Colors.ENDC
-                                      + "] Insert the upper limit of the generation interval: "))
-            config['problem_params']['max_value'] = max_value
-
-    return data_filepath, num_values, max_value
-
-
-def select_qap_problem():
-    qap_files = sorted([f for f in listdir("QAP/") if isfile(join("QAP/", f))])
-
-    for i, element in enumerate(qap_files):
-        print(f"    Write {i} for the problem {element.rsplit('.')[0]}")
-
-    problem = int(input("Which problem do you want to solve? "))
-    filepath = "QAP/" + qap_files[problem]
-
-    return filepath, qap_files[problem].rsplit('.')[0]
-
-
-def load_qap_params(config):
-    filepath, problem_name = None, None
-    if len(config['problem_params']) != 0:
-        if 'qap_data_file' in config['problem_params'] and \
-                os.path.exists(config['problem_params']['qap_data_file']):
-            filepath = config['problem_params']['qap_data_file']
-            problem_name = os.path.basename(config['problem_params']['qap_data_file']).rsplit('.')[0]
-
-    if filepath is None or problem_name is None:
-        filepath, problem_name = select_qap_problem()
-        config['problem_params']['qap_data_file'] = filepath
-
-    return filepath, problem_name
-
-
-def load_tsp_params(config):
-    data_filepath, num_nodes = None, None
-    if len(config['problem_params']) != 0:
-        data_filepath = config['problem_params']['tsp_data_file'] \
-            if 'tsp_data_file' in config['problem_params'] and \
-               os.path.exists(config['problem_params']['tsp_data_file']) \
-            else data_filepath
-        num_nodes = config['problem_params']['num_nodes'] if 'num_nodes' in config['problem_params'] else num_nodes
-
-    if data_filepath is None:
-        if num_nodes is None or (num_nodes <= 0 or num_nodes > 12):
-            num_nodes = int(input("Insert the desired number of nodes (cities), the allowed range is [0, 11]: "))
-            while num_nodes <= 0 or num_nodes > 12:
-                num_nodes = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid number of nodes" + Colors.ENDC
-                                      + "] Insert the desired number of nodes (cities), the allowed range is [0, 11]: ")
-                                )
-            config['problem_params']['num_nodes'] = num_nodes
-
-    bruteforce, dwave, hybrid = False, False, False
-    if len(config['additional_params']) != 0:
-        bruteforce = config['additional_params']['bruteforce'] if 'bruteforce' in config['additional_params']\
-                        else bruteforce
-        dwave = config['additional_params']['dwave'] if 'dwave' in config['additional_params'] else dwave
-        hybrid = config['additional_params']['hybrid'] if 'hybrid' in config['additional_params'] else hybrid
-
-    return data_filepath, num_nodes, bruteforce, dwave, hybrid
-
-
 def main(config):
     # Set the seed and create the output directory
     random.seed(config['random_seed'])
     problem_generation_seed, qals_execution_seed = random.randint(0, 1000000000), random.randint(0, 1000000000)
     other_seeds = [random.randint(0, 1000000000) for _ in range(0, 3)]
 
-    makedirs(config['root_out_dir'], exist_ok=True)
+    os.makedirs(config['root_out_dir'], exist_ok=True)
 
     # Select (or load) the problem to run
     if config['problem'] is not None and config['problem'] != '':
@@ -140,7 +61,7 @@ def main(config):
         data_filepath, num_values, max_value = load_npp_params(config)
 
         if data_filepath is not None:
-            S = utils.load_numbers(data_filepath)
+            S = load_numbers(data_filepath)
             num_values, max_value = len(S), max(S)
 
         out_dir = os.path.join(config['root_out_dir'], 'NPP',
@@ -151,12 +72,12 @@ def main(config):
 
         data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
-            S = utils.generate_and_save_numbers(num_values, max_value, data_file_copy_path)
+            S = generate_and_save_numbers(num_values, max_value, data_file_copy_path)
         else:
             shutil.copy2(data_filepath, data_file_copy_path)
 
         qubo_size = num_values
-        Q, c = utils.build_NPP_QUBO_problem(S)
+        Q, c = build_NPP_QUBO_problem(S)
 
     elif qap:  # QAP problem
         data_filepath, problem_name = load_qap_params(config)
@@ -169,13 +90,13 @@ def main(config):
 
         shutil.copy2(data_filepath, f'{out_files_prefix}_data.txt')
 
-        Q, penalty, qubo_size, y = utils.build_QAP_QUBO_problem(data_filepath)
+        Q, penalty, qubo_size, y = build_QAP_QUBO_problem(data_filepath)
 
     elif tsp:  # TSP problem
         data_filepath, num_nodes, bruteforce, dwave, hybrid = load_tsp_params(config)
 
         if data_filepath is not None:
-            nodes = tsp_utils.load_nodes(data_filepath)
+            nodes = load_nodes(data_filepath)
             num_nodes = len(nodes)
 
         out_dir = os.path.join(config['root_out_dir'], 'TSP',
@@ -186,12 +107,12 @@ def main(config):
 
         data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
-            nodes = tsp_utils.generate_and_save_nodes(num_nodes, data_file_copy_path)
+            nodes = generate_and_save_nodes(num_nodes, data_file_copy_path)
         else:
             shutil.copy2(data_filepath, data_file_copy_path)
 
         qubo_size = num_nodes ** 2
-        qubo_problem, Q, tsp_matrix = tsp_utils.build_TSP_QUBO_problem(nodes, qubo_size)
+        qubo_problem, Q, tsp_matrix = build_TSP_QUBO_problem(nodes, qubo_size)
 
     # Output files
     qubo_matrix_csv_file = f'{out_files_prefix}_qubo_matrix.csv'
@@ -215,13 +136,14 @@ def main(config):
     qals_config = config['qals_params']
     random.seed(qals_execution_seed)
     z_star, avg_response_time = \
-        qals.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
-                 k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
-                 N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
-                 q=qals_config['q'], Q=Q, topology=config['topology'], adj_matrix_json_file=adj_matrix_json_file,
-                 qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
-                 tabu_type=config['tabu_type'], simulation=config['simulation'])
-    min_value_found = qals.function_f(Q, z_star).item()
+        qals_algorithm.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
+                           k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
+                           N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
+                           q=qals_config['q'], Q=Q, topology=config['topology'],
+                           adj_matrix_json_file=adj_matrix_json_file, qals_csv_log_file=qals_csv_log_file,
+                           tabu_csv_log_file=tabu_csv_log_file, tabu_type=config['tabu_type'],
+                           simulation=config['simulation'])
+    min_value_found = qals_algorithm.function_f(Q, z_star)
     total_timedelta = datetime.timedelta(seconds=(time.time() - start_time))
 
     # Prepare the output string and files
@@ -240,17 +162,17 @@ def main(config):
                       add_to_log_string("diff**2", round(diff_squared, 2)) + \
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
-        utils.csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
-        utils.csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
-                                                         utils.np_vector_to_string(np.array(S)), z_star,
-                                                         min_value_found])
+        csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
+        csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
+                                                   np_vector_to_string(np.array(S)), z_star,
+                                                   min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
                       add_to_log_string("Difference", round(y + min_value_found, 2))
-        utils.csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "y", "f_Q(z*)",
-                                                         "difference (y+f_Q(z*))", "z*"])
-        utils.csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
-                                                         z_star])
+        csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "y", "f_Q(z*)",
+                                                   "difference (y+f_Q(z*))", "z*"])
+        csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
+                                                   z_star])
 
     elif tsp:
         output_df = pd.DataFrame(
@@ -259,12 +181,12 @@ def main(config):
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )
         qals_output, log_string = \
-            tsp_utils.refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, log_string, tsp_matrix,
-                                                            avg_response_time, total_timedelta, min_value_found)
-        tsp_utils.add_TSP_info_to_out_df(output_df, qals_output)
+            refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, log_string, tsp_matrix,
+                                                  avg_response_time, total_timedelta, min_value_found)
+        add_TSP_info_to_out_df(output_df, qals_output)
 
-        tsp_utils.solve_TSP(nodes, qubo_problem, tsp_matrix, Q, output_df, other_seeds,
-                            bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
+        solve_TSP(nodes, qubo_problem, tsp_matrix, Q, output_df, other_seeds,
+                  bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(solution_csv_file)
     

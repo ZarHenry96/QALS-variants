@@ -2,8 +2,7 @@ import dwave_networkx as dnx
 import networkx as nx
 import sys
 
-from qals.colors import Colors
-from qals.utils import now
+from qals.utils import Colors, now
 
 
 def get_topology_active_adj_matrix(sampler, n):

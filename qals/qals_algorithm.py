@@ -8,14 +8,13 @@ import time
 from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
 
-from qals.colors import Colors
 from qals.solvers import get_annealing_sampler, annealing, stub_solver
 from qals.topology import get_adj_matrix
-from qals.utils import now, csv_write, np_vector_to_string, tabu_to_string
+from qals.utils import Colors, now, csv_write, np_vector_to_string, tabu_to_string
 
 
 def function_f(Q, x):
-    return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
+    return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T).item()
 
 
 def make_decision(probability):
@@ -188,8 +187,8 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in "+str(timedelta_z_two)+"\n")
 
-        f_one = function_f(Q, z_one).item()
-        f_two = function_f(Q, z_two).item()
+        f_one = function_f(Q, z_one)
+        f_two = function_f(Q, z_two)
 
         if f_one < f_two:
             z_star = z_one
@@ -255,11 +254,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             if make_decision(q):
                 perturbation = True
                 non_perturbed_z = np.copy(z_prime)
-                non_perturbed_f = function_f(Q, z_prime).item()
+                non_perturbed_f = function_f(Q, z_prime)
                 z_prime = h(z_prime, p)
 
             if (z_prime != z_star).any():
-                f_prime = function_f(Q, z_prime).item()
+                f_prime = function_f(Q, z_prime)
                 
                 if f_prime < f_star:
                     optimal_acceptance = True

@@ -9,6 +9,7 @@
 #
 import itertools
 import numpy as np
+import os
 import pandas as pd
 import random
 import time
@@ -18,10 +19,57 @@ from dwave.system import LeapHybridSampler
 from dwave.system.composites import EmbeddingComposite
 from dwave.system.samplers import DWaveSampler
 
-from qals.colors import Colors
-from qals.qals import function_f
+from problems_utils.utils import select_input_data
+
+from qals.qals_algorithm import function_f
 from qals.solvers import annealing, hybrid, stub_solver
-from qals.utils import now
+from qals.utils import Colors, now
+
+
+def delete_extra_params_keys(config, num_nodes):
+    if num_nodes is not None:
+        del config['problem_params']['num_nodes']
+
+    return None
+
+
+def load_tsp_params(config):
+    data_filepath, num_nodes = None, None
+    if len(config['problem_params']) != 0:
+        data_filepath = config['problem_params']['tsp_data_file'] \
+            if 'tsp_data_file' in config['problem_params'] and \
+               os.path.exists(config['problem_params']['tsp_data_file']) \
+            else data_filepath
+        num_nodes = config['problem_params']['num_nodes'] if 'num_nodes' in config['problem_params'] else num_nodes
+
+    if data_filepath is not None:
+        num_nodes = delete_extra_params_keys(config, num_nodes)
+    else:
+        if num_nodes is None or num_nodes <= 0:
+            num_nodes = delete_extra_params_keys(config, num_nodes)
+
+            input_data_selection = input("Do you want to use an existent TSP problem file? (y/n) ")
+            while input_data_selection not in ['y', 'n']:
+                input_data_selection = input("Do you want to use an existent TSP problem file? (y/n) ")
+
+            if input_data_selection == 'y':
+                data_filepath, _ = select_input_data('tsp')
+                config['problem_params']['tsp_data_file'] = data_filepath
+            else:
+                num_nodes = int(input("Insert the desired number of nodes (cities): "))
+                while num_nodes <= 0:
+                    num_nodes = int(input("[" + Colors.ERROR + Colors.BOLD + "Invalid number of nodes" + Colors.ENDC
+                                          + "] Insert the desired number of nodes (cities): "))
+                config['problem_params']['num_nodes'] = num_nodes
+
+    bruteforce, dwave, hybrid = False, False, False
+    if len(config['additional_params']) != 0:
+        bruteforce = config['additional_params']['bruteforce'] if 'bruteforce' in config['additional_params']\
+                        else bruteforce
+        dwave = config['additional_params']['dwave'] if 'dwave' in config['additional_params'] else dwave
+        hybrid = config['additional_params']['hybrid'] if 'hybrid' in config['additional_params'] else hybrid
+
+    return data_filepath, num_nodes, bruteforce, dwave, hybrid
 
 
 def generate_and_save_nodes(num_nodes, filepath):
@@ -335,7 +383,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         total_time = timedelta(seconds=(time.time()-start_qa))
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix,
-                                                      None, total_time, function_f(Q, z_star).item())
+                                                      None, total_time, function_f(Q, z_star))
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
         add_TSP_info_to_out_df(out_df, qa)
@@ -351,7 +399,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         total_time = timedelta(seconds=(time.time()-start_hy))
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix,
-                                                      None, total_time, function_f(Q, z_star).item())
+                                                      None, total_time, function_f(Q, z_star))
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)
