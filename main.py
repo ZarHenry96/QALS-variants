@@ -10,9 +10,10 @@ import sys
 import time
 
 from qals import qals_algorithm
-from qals.utils import Colors, csv_write, np_vector_to_string
+from qals.utils import Colors, csv_write
 
-from problems_utils.npp import load_npp_params, load_numbers, generate_and_save_numbers, build_NPP_QUBO_problem
+from problems_utils.npp import load_npp_params, load_numbers, extract_range_from_filepath, generate_and_save_numbers, \
+    build_NPP_QUBO_problem
 from problems_utils.qap import load_qap_params, build_QAP_QUBO_problem
 from problems_utils.tsp import load_tsp_params, load_nodes, generate_and_save_nodes, build_TSP_QUBO_problem, \
     refine_TSP_solution_and_format_output, add_TSP_info_to_out_df, solve_TSP
@@ -63,6 +64,7 @@ def main(config):
         if data_filepath is not None:
             S = load_numbers(data_filepath)
             num_values, max_value = len(S), max(S)
+            max_value = extract_range_from_filepath(data_filepath, max_value)
 
         out_dir = os.path.join(config['root_out_dir'], 'NPP',
                                f'num_values_{num_values}_range_{max_value}' + ('_sim' if config['simulation'] else ''),
@@ -128,8 +130,6 @@ def main(config):
 
     print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILT" + Colors.ENDC + "\n\n\t\t" +
           Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
-    if npp:
-        print("[" + Colors.BOLD + Colors.OKCYAN + "S" + Colors.ENDC + f"] {S}")
 
     # Solve the problem using QALS
     start_time = time.time()
@@ -162,10 +162,9 @@ def main(config):
                       add_to_log_string("diff**2", round(diff_squared, 2)) + \
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
-        csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "S", "z*", "f_Q(z*)"])
+        csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "z*", "f_Q(z*)"])
         csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
-                                                   np_vector_to_string(np.array(S)), z_star,
-                                                   min_value_found])
+                                                   z_star, min_value_found])
     elif qap:
         log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
                       add_to_log_string("Difference", round(y + min_value_found, 2))

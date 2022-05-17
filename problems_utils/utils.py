@@ -8,7 +8,7 @@ def select_input_data(problem):
     ])
 
     for i, element in enumerate(input_data_files):
-        print(f"    Write {i} for the problem {element.rsplit('.')[0]}")
+        print("    Write {:2d} for the problem {}".format(i, element.rsplit('.')[0]))
 
     problem = int(input("Which problem do you want to solve? "))
     filepath = os.path.join(input_data_dir, input_data_files[problem])

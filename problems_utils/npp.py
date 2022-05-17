@@ -2,6 +2,7 @@ import numpy as np
 import os
 import random
 import pandas as pd
+import re
 
 from problems_utils.utils import select_input_data
 from qals.utils import Colors
@@ -53,6 +54,18 @@ def load_npp_params(config):
                 config['problem_params']['max_value'] = max_value
 
     return data_filepath, num_values, max_value
+
+
+def extract_range_from_filepath(filepath, max_value_found):
+    max_value = max_value_found
+
+    basename = os.path.basename(filepath)
+    if re.match('.*num_values_[0-9]+_range_[0-9]+\.csv', basename):
+        max_value_in_filename = int(re.split('[_.]', basename)[-2])
+        if max_value_found <= max_value_in_filename:
+            max_value = max_value_in_filename
+
+    return max_value
 
 
 def generate_and_save_numbers(num_values, max_value, data_file):
