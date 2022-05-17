@@ -176,11 +176,11 @@ def main(config):
     elif tsp:
         output_df = pd.DataFrame(
             columns=["Solution", "Cost", "Refinement", "Avg. response time", "Total time (w/o refinement)",
-                     "z*", "f_Q(z*)"],
+                     "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))"],
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )
         qals_output, log_string = \
-            refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, log_string, tsp_matrix,
+            refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
                                                   avg_response_time, total_timedelta, min_value_found)
         add_TSP_info_to_out_df(output_df, qals_output)
 

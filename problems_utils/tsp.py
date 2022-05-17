@@ -222,6 +222,17 @@ def check_solution_validity(z, num_nodes):
     return valid
 
 
+def points_order_to_binary_state(points_order):
+    number_of_points = len(points_order)
+
+    binary_state = np.zeros(number_of_points ** 2, dtype=int)
+    for p in range(0, number_of_points):
+        j = points_order[p]
+        binary_state[number_of_points * p + j] = 1
+
+    return binary_state
+
+
 def binary_state_to_points_order(binary_state):
     points_order = []
     number_of_points = int(np.sqrt(len(binary_state)))
@@ -253,7 +264,7 @@ def refine_TSP_solution(original_solution):
     diff = list()
     indexes = list()
 
-    refined_solution = np.array([-1 for i in range(num_nodes)])
+    refined_solution = np.array([-1 for _ in range(num_nodes)])
     for i in range(num_nodes):
         for j in range(num_nodes):
             if original_solution[num_nodes * i + j] == 1:
@@ -307,7 +318,7 @@ def refine_TSP_solution(original_solution):
     return np.array(refined_solution)
 
 
-def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string, tsp_matrix, avg_response_time,
+def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_response_time,
                                           total_timedelta, min_value_found):
     output_dict = dict()
     output_dict['type'] = method
@@ -316,6 +327,9 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string,
     if not valid:
         output_dict['solution'] = refine_TSP_solution(z_star)
         output_dict['refinement'] = True
+        output_dict['refined_z_star'] = points_order_to_binary_state(output_dict['solution'])
+        output_dict['refined_qubo_image'] = function_f(Q, output_dict['refined_z_star'])
+
         if log_string is not None:
             padding = 10
             log_string += "[" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC + "]" + " "*padding \
@@ -325,6 +339,7 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, log_string,
     else:
         output_dict['solution'] = binary_state_to_points_order(z_star)
         output_dict['refinement'] = False
+        output_dict['refined_z_star'], output_dict['refined_qubo_image'] = [], None
 
     output_dict['cost'] = round(calculate_cost(tsp_matrix, output_dict['solution']), 2)
 
@@ -345,6 +360,8 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['Total time (w/o refinement)'][dictionary['type']] = dictionary['tot_time']
     df['z*'][dictionary['type']] = dictionary['z_star']
     df['f_Q(z*)'][dictionary['type']] = dictionary['qubo_image']
+    df['refined(z*)'][dictionary['type']] = dictionary['refined_z_star']
+    df['f_Q(refined(z*))'][dictionary['type']] = dictionary['refined_qubo_image']
 
 
 def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
@@ -364,7 +381,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         bf['solution'], bf['cost'] = solve_tsp_brute_force(nodes_array)
         bf['refinement'], bf['avg_resp_time'] = False, None
         bf['tot_time'] = timedelta(seconds=(time.time()-start_bf))
-        bf['z_star'], bf['qubo_image'] = [], None
+        bf['z_star'], bf['qubo_image'], bf['refined_z_star'], bf['refined_qubo_image'] = [], None, [], None
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
 
@@ -382,7 +399,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         z_star = solve_tsp_annealer(qubo_problem, 1000)
         total_time = timedelta(seconds=(time.time()-start_qa))
 
-        qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, None, tsp_matrix,
+        qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star))
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
@@ -398,7 +415,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         z_star = solve_tsp_hybrid(qubo_problem)
         total_time = timedelta(seconds=(time.time()-start_hy))
 
-        hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, None, tsp_matrix,
+        hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star))
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
