@@ -127,10 +127,9 @@ def add_time_constraints(distance_matrix, constraint_constant, qubo_dict):
                 qubo_dict[(qubit_a, qubit_a)] = -constraint_constant
             else:
                 qubo_dict[(qubit_a, qubit_a)] += -constraint_constant
-            for j in range(num_nodes):
+            for j in range(i+1, num_nodes):
                 qubit_b = t * num_nodes + j
-                if i != j:
-                    qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
+                qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
 
 
 def add_position_constraints(distance_matrix, constraint_constant, qubo_dict):
@@ -142,10 +141,9 @@ def add_position_constraints(distance_matrix, constraint_constant, qubo_dict):
                 qubo_dict[(qubit_a, qubit_a)] = -constraint_constant
             else:
                 qubo_dict[(qubit_a, qubit_a)] += -constraint_constant
-            for t2 in range(num_nodes):
+            for t2 in range(t1+1, num_nodes):
                 qubit_b = t2 * num_nodes + i
-                if t1 != t2:
-                    qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
+                qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_constant
 
 
 def build_TSP_QUBO_problem(nodes_array, qubo_size):
@@ -169,22 +167,20 @@ def build_TSP_QUBO_problem(nodes_array, qubo_size):
 def calculate_cost(cost_matrix, solution):
     cost = 0
     for i in range(len(solution)):
-        a = i % len(solution)
+        a = i
         b = (i+1) % len(solution)
         cost += cost_matrix[solution[a]][solution[b]]
 
     return cost
 
 
-def solve_tsp_brute_force(nodes_array):
-    number_of_nodes = len(nodes_array)
-    initial_order = range(0, number_of_nodes)
-    all_permutations = [list(x) for x in itertools.permutations(initial_order)]
-    cost_matrix = get_tsp_matrix(nodes_array)
+def solve_tsp_brute_force(cost_matrix):
+    number_of_nodes = len(cost_matrix)
+    all_permutations = [list(x) for x in itertools.permutations(range(0, number_of_nodes))]
+
     best_permutation = all_permutations[0]
     best_cost = calculate_cost(cost_matrix, all_permutations[0])
-
-    for permutation in all_permutations:
+    for permutation in all_permutations[1:]:
         current_cost = calculate_cost(cost_matrix, permutation)
         if current_cost < best_cost:
             best_permutation = permutation
@@ -208,16 +204,14 @@ def solve_tsp_hybrid(qubo_dict):
 def check_solution_validity(z, num_nodes):
     valid = True
 
-    nodes_positions = np.split(z, num_nodes)
+    nodes_in_positions = np.split(z, num_nodes)
     visited_nodes = list()
-    for node_position in nodes_positions:
-        if np.count_nonzero(node_position == 1) != 1:
-            valid = False
-        where = str(np.where(node_position == 1))
-        if str(np.where(node_position == 1)) in visited_nodes:
+    for nodes_in_position in nodes_in_positions:
+        nodes = np.where(nodes_in_position == 1)[0]
+        if len(nodes) != 1 or nodes[0] in visited_nodes:
             valid = False
         else:
-            visited_nodes.append(where)
+            visited_nodes.append(nodes[0])
 
     return valid
 
@@ -364,7 +358,7 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['f_Q(refined(z*))'][dictionary['type']] = dictionary['refined_qubo_image']
 
 
-def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
+def solve_TSP(qubo_problem, tsp_matrix, Q, out_df, random_seeds,
               bruteforce=True, d_wave=True, hybrid=True):
     if bruteforce or d_wave or hybrid:
         print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
@@ -378,7 +372,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
         bf['type'] = 'Bruteforce'
 
         start_bf = time.time()
-        bf['solution'], bf['cost'] = solve_tsp_brute_force(nodes_array)
+        bf['solution'], bf['cost'] = solve_tsp_brute_force(tsp_matrix)
         bf['refinement'], bf['avg_resp_time'] = False, None
         bf['tot_time'] = timedelta(seconds=(time.time()-start_bf))
         bf['z_star'], bf['qubo_image'], bf['refined_z_star'], bf['refined_qubo_image'] = [], None, [], None
@@ -387,7 +381,7 @@ def solve_TSP(nodes_array, qubo_problem, tsp_matrix, Q, out_df, random_seeds,
 
         add_TSP_info_to_out_df(out_df, bf)
 
-    num_nodes = len(nodes_array)
+    num_nodes = len(tsp_matrix)
 
     # D-Wave quantum annealing
     random.seed(random_seeds[1])

@@ -184,7 +184,7 @@ def main(config):
                                                   avg_response_time, total_timedelta, min_value_found)
         add_TSP_info_to_out_df(output_df, qals_output)
 
-        solve_TSP(nodes, qubo_problem, tsp_matrix, Q, output_df, other_seeds,
+        solve_TSP(qubo_problem, tsp_matrix, Q, output_df, other_seeds,
                   bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(solution_csv_file)
