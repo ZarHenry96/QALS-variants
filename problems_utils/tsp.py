@@ -239,24 +239,17 @@ def binary_state_to_points_order(binary_state):
     return np.array(points_order)
 
 
-def advance(iter, rnd):
-    iterator = next(iter)
-    while random.random() > rnd:
-        iterator = next(iter, iterator)
-
-    return iterator
-
-
 def refine_TSP_solution(original_solution):
     num_nodes = int(np.sqrt(len(original_solution)))
 
+    all_nodes = list(range(num_nodes))
     raw = dict()
     for i in range(num_nodes):
         raw[i] = list()
-    keep = list()
-    all_ = list()
+    keep = set()
     diff = list()
     indexes = list()
+    left = list()
 
     refined_solution = np.array([-1 for _ in range(num_nodes)])
     for i in range(num_nodes):
@@ -266,48 +259,46 @@ def refine_TSP_solution(original_solution):
     
     for i in range(num_nodes):
         if len(raw[i]) == 1:
-            keep.append(raw[i][0])
             refined_solution[i] = raw[i][0]
-        all_.append(i)
+            keep.add(raw[i][0])
 
     for i in range(num_nodes):
         if len(raw[i]) > 1:
-            for it in raw[i]:
-                if it not in keep: 
-                    diff.append(it)
+            for node in raw[i]:
+                if node not in keep:
+                    diff.append(node)
             
             if len(diff) > 0:
-                it = advance(iter(diff), random.random() % len(diff))
-                refined_solution[i] = it
-                keep.append(it)
+                random_node = random.choice(diff)
+                refined_solution[i] = random_node
+                keep.add(random_node)
                 diff.clear()
 
     for i in range(num_nodes):
         for j in range(num_nodes):
             if refined_solution[j] == i:
-                indexes.append(j) 
+                indexes.append(j)
 
         if len(indexes) > 1:
             random.shuffle(indexes)
-            index = indexes[0]
-            for it in indexes:
-                if it == index: 
-                    refined_solution[it] = i
+            random_pos = indexes[0]
+            for pos in indexes:
+                if pos == random_pos:
+                    refined_solution[pos] = i
                 else:
-                    refined_solution[it] = -1
-            keep.append(i)
+                    refined_solution[pos] = -1
 
         indexes.clear()
 
-    for it in all_:
-        if it not in keep: 
-            diff.append(it)
+    for node in all_nodes:
+        if node not in keep:
+            left.append(node)
         
     for i in range(num_nodes):
-        if refined_solution[i] == -1 and len(diff) != 0:
-            it = advance(iter(diff), random.random() % len(diff))
-            refined_solution[i] = it
-            diff.remove(it)
+        if refined_solution[i] == -1:
+            random_node = random.choice(left)
+            refined_solution[i] = random_node
+            left.remove(random_node)
 
     return np.array(refined_solution)
 
