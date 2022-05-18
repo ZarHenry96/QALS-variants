@@ -85,24 +85,17 @@ def load_numbers(data_filepath):
     return list(df.to_numpy()[0])
 
 
-def build_NPP_QUBO_problem(numbers):
-    num_values = len(numbers)
-    c = 0
+def build_NPP_QUBO_problem(S):
+    num_values = len(S)
+    c = sum(S)
+
+    Q = np.zeros((num_values, num_values))
+
     for i in range(num_values):
-        c += numbers[i]
-
-    QUBO = np.zeros((num_values, num_values))
-    col_max = 0
-    col = 0
-    for row in range(num_values):
-        col_max += 1
-        while col < col_max:
-            if row == col:
-                QUBO[row][col] = numbers[row] * (numbers[row] - c)
+        for j in range(num_values):
+            if i == j:
+                Q[i][i] = S[i] * (S[i] - c)
             else:
-                QUBO[row][col] = numbers[row] * numbers[col]
-                QUBO[col][row] = QUBO[row][col]
-            col += 1
-        col = 0
+                Q[i][j] = S[i] * S[j]
 
-    return QUBO, c
+    return Q, c

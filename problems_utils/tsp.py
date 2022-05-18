@@ -349,7 +349,7 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['f_Q(refined(z*))'][dictionary['type']] = dictionary['refined_qubo_image']
 
 
-def solve_TSP(qubo_problem, tsp_matrix, Q, out_df, random_seeds,
+def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
               bruteforce=True, d_wave=True, hybrid=True):
     if bruteforce or d_wave or hybrid:
         print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
@@ -381,7 +381,7 @@ def solve_TSP(qubo_problem, tsp_matrix, Q, out_df, random_seeds,
               + "] Start computing D-Wave solution ... ")
 
         start_qa = time.time()
-        z_star = solve_tsp_annealer(qubo_problem, 1000)
+        z_star = solve_tsp_annealer(qubo_problem_dict, 1000)
         total_time = timedelta(seconds=(time.time()-start_qa))
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
@@ -397,7 +397,7 @@ def solve_TSP(qubo_problem, tsp_matrix, Q, out_df, random_seeds,
               + "] Start computing Hybrid solution ... ")
 
         start_hy = time.time()
-        z_star = solve_tsp_hybrid(qubo_problem)
+        z_star = solve_tsp_hybrid(qubo_problem_dict)
         total_time = timedelta(seconds=(time.time()-start_hy))
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, Q, None, tsp_matrix,
