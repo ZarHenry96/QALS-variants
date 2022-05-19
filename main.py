@@ -92,7 +92,7 @@ def main(config):
 
         shutil.copy2(data_filepath, f'{out_files_prefix}_data.txt')
 
-        Q, penalty, qubo_size, y = build_QAP_QUBO_problem(data_filepath)
+        Q, qubo_size, penalty, offset = build_QAP_QUBO_problem(data_filepath)
 
     elif tsp:  # TSP problem
         data_filepath, num_nodes, bruteforce, dwave, hybrid = load_tsp_params(config)
@@ -166,16 +166,16 @@ def main(config):
         csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
                                                    z_star, min_value_found])
     elif qap:
-        log_string += add_to_log_string("y", y) + add_to_log_string("Penalty", penalty) + \
-                      add_to_log_string("Difference", round(y + min_value_found, 2))
-        csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "y", "f_Q(z*)",
-                                                   "difference (y+f_Q(z*))", "z*"])
-        csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, y, min_value_found, y + min_value_found,
-                                                   z_star])
+        log_string += add_to_log_string("penalty", penalty) + add_to_log_string("offset", offset) + \
+                      add_to_log_string("objective function value", round(min_value_found + offset, 2))
+        csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "offset", "f_Q(z*)",
+                                                   "objective function value (f_Q(z*) + offset)", "z*"])
+        csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, offset, min_value_found,
+                                                   min_value_found + offset, z_star])
 
     elif tsp:
         output_df = pd.DataFrame(
-            columns=["Solution", "Cost", "Refinement", "Avg. response time", "Total time (w/o refinement)",
+            columns=["solution", "cost", "refinement", "avg. response time", "total time (w/o refinement)",
                      "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))"],
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )

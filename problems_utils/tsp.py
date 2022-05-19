@@ -338,11 +338,11 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_stri
 
 
 def add_TSP_info_to_out_df(df, dictionary):
-    df['Solution'][dictionary['type']] = dictionary['solution']
-    df['Cost'][dictionary['type']] = dictionary['cost']
-    df['Refinement'][dictionary['type']] = dictionary['refinement']
-    df['Avg. response time'][dictionary['type']] = dictionary['avg_resp_time']
-    df['Total time (w/o refinement)'][dictionary['type']] = dictionary['tot_time']
+    df['solution'][dictionary['type']] = dictionary['solution']
+    df['cost'][dictionary['type']] = dictionary['cost']
+    df['refinement'][dictionary['type']] = dictionary['refinement']
+    df['avg. response time'][dictionary['type']] = dictionary['avg_resp_time']
+    df['total time (w/o refinement)'][dictionary['type']] = dictionary['tot_time']
     df['z*'][dictionary['type']] = dictionary['z_star']
     df['f_Q(z*)'][dictionary['type']] = dictionary['qubo_image']
     df['refined(z*)'][dictionary['type']] = dictionary['refined_z_star']

@@ -19,21 +19,23 @@ def load_qap_params(config):
     return filepath, problem_name
 
 
-def read_integers(filename: str):
-    with open(filename) as f:
+def read_integers(filepath):
+    with open(filepath) as f:
         return [int(elem) for elem in f.read().split()]
 
 
-def generate_QAP_QUBO_matrix(flow, distance, penalty):
-    num_values = len(flow)
-    q = np.einsum("ij,kl->ikjl", flow, distance).astype(np.float)
-    i = range(len(q))
+def build_Q(flow, distance, penalty):
+    n = len(flow)
 
-    q[i, :, i, :] += penalty
-    q[:, i, :, i] += penalty
-    q[i, i, i, i] -= 4 * penalty
+    Q = np.einsum("ij,kl->ikjl", flow, distance).astype(np.float)
 
-    return q.reshape(num_values ** 2, num_values ** 2)
+    index_range = range(n)
+    Q[index_range, :, index_range, :] += penalty
+    Q[:, index_range, :, index_range] += penalty
+    for j in range(n):
+        Q[index_range, j, index_range, j] -= 4 * penalty
+
+    return Q.reshape(n ** 2, n ** 2)
 
 
 def build_QAP_QUBO_problem(data_filepath):
@@ -44,9 +46,9 @@ def build_QAP_QUBO_problem(data_filepath):
     distance = [[next(file_iterator) for _ in range(n)] for _ in range(n)]
 
     kron_product = np.kron(flow, distance)
+    penalty = (np.amax(kron_product) * 2.25)
 
-    penalty = (kron_product.max() * 2.25)
-    matrix = generate_QAP_QUBO_matrix(flow, distance, penalty)
-    y = penalty * (len(flow) + len(distance))
+    Q = build_Q(flow, distance, penalty)
+    offset = penalty * (len(flow) + len(distance))
 
-    return matrix, penalty, len(matrix), y
+    return Q, len(Q), penalty, offset
