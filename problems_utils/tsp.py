@@ -73,10 +73,11 @@ def load_tsp_params(config):
 
 
 def generate_and_save_nodes(num_nodes, filepath):
-    nodes_list = []
-    for i in range(num_nodes):
-        nodes_list.append(np.array([random.random() for _ in range(0, 2)]) * 10)
-    nodes_array = np.array(nodes_list)
+    num_coordinates, coordinates_range = 2, 10
+    nodes_array = np.array([
+        [random.random() * coordinates_range for _ in range(0, num_coordinates)]
+        for _ in range(0, num_nodes)
+    ])
 
     pd.DataFrame(data=nodes_array, columns=["x", "y"]).to_csv(filepath, index=False)
 
@@ -379,9 +380,10 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
     if d_wave:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Start computing D-Wave solution ... ")
+        num_reads = 1000
 
         start_qa = time.time()
-        z_star = solve_tsp_annealer(qubo_problem_dict, 1000)
+        z_star = solve_tsp_annealer(qubo_problem_dict, num_reads)
         total_time = timedelta(seconds=(time.time()-start_qa))
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
