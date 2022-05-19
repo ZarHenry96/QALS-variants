@@ -304,7 +304,7 @@ def refine_TSP_solution(original_solution):
     return np.array(refined_solution)
 
 
-def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_response_time,
+def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_iteration_time,
                                           total_timedelta, min_value_found):
     output_dict = dict()
     output_dict['type'] = method
@@ -329,7 +329,7 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_stri
 
     output_dict['cost'] = round(calculate_cost(tsp_matrix, output_dict['solution']), 2)
 
-    output_dict['avg_resp_time'] = avg_response_time
+    output_dict['avg_iter_time'] = avg_iteration_time
     output_dict['tot_time'] = total_timedelta
 
     output_dict['z_star'] = z_star
@@ -342,7 +342,7 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['solution'][dictionary['type']] = dictionary['solution']
     df['cost'][dictionary['type']] = dictionary['cost']
     df['refinement'][dictionary['type']] = dictionary['refinement']
-    df['avg. response time'][dictionary['type']] = dictionary['avg_resp_time']
+    df['avg. iteration time'][dictionary['type']] = dictionary['avg_iter_time']
     df['total time (w/o refinement)'][dictionary['type']] = dictionary['tot_time']
     df['z*'][dictionary['type']] = dictionary['z_star']
     df['f_Q(z*)'][dictionary['type']] = dictionary['qubo_image']
@@ -365,7 +365,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
 
         start_bf = time.time()
         bf['solution'], bf['cost'] = solve_tsp_brute_force(tsp_matrix)
-        bf['refinement'], bf['avg_resp_time'] = False, None
+        bf['refinement'], bf['avg_iter_time'] = False, None
         bf['tot_time'] = timedelta(seconds=(time.time()-start_bf))
         bf['z_star'], bf['qubo_image'], bf['refined_z_star'], bf['refined_qubo_image'] = [], None, [], None
 

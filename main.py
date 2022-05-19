@@ -135,7 +135,7 @@ def main(config):
     start_time = time.time()
     qals_config = config['qals_params']
     random.seed(qals_execution_seed)
-    z_star, avg_response_time = \
+    z_star, avg_iteration_time = \
         qals_algorithm.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
                            k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
                            N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
@@ -149,11 +149,7 @@ def main(config):
     # Prepare the output string and files
     print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     log_string = str()
-    if qubo_size < 16:
-        log_string += add_to_log_string("z*", z_star)
-    else:
-        log_string += add_to_log_string("z*", "Too long to be printed, look into " +
-                                              out_dir + " for the complete result")
+    log_string += add_to_log_string("z*", "Look into " + out_dir)
     log_string += add_to_log_string("f_Q value", round(min_value_found, 2))
 
     if npp:
@@ -175,13 +171,13 @@ def main(config):
 
     elif tsp:
         output_df = pd.DataFrame(
-            columns=["solution", "cost", "refinement", "avg. response time", "total time (w/o refinement)",
+            columns=["solution", "cost", "refinement", "avg. iteration time", "total time (w/o refinement)",
                      "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))"],
             index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
         )
         qals_output, log_string = \
             refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
-                                                  avg_response_time, total_timedelta, min_value_found)
+                                                  avg_iteration_time, total_timedelta, min_value_found)
         add_TSP_info_to_out_df(output_df, qals_output)
 
         solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, other_seeds,
@@ -197,8 +193,6 @@ if __name__ == '__main__':
     parser.add_argument('config_file', metavar='config_file', type=str, nargs='?', default=None,
                         help='file (.json) containing the configuration for the experiment')
     args = parser.parse_args()
-
-    # system('cls' if name == 'nt' else 'clear')
 
     with open(args.config_file) as cf:
         config = json.load(cf)

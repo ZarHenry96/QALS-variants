@@ -1,6 +1,5 @@
 import neal
 import random
-import time
 
 from dwave.system.samplers import DWaveSampler
 
@@ -21,15 +20,8 @@ def get_annealing_sampler(simulation, topology):
     return sampler, string
 
 
-def annealing(theta, annealing_sampler, k, print_time=False):
-    start_time = None
-    if print_time:
-        start_time = time.time()
-        
+def annealing(theta, annealing_sampler, k):
     response = annealing_sampler.sample_qubo(theta, num_reads=k)
-    
-    if print_time:
-        print(f"Time: {time.time()-start_time}")
     
     return list(response.first.sample.values())
 

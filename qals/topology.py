@@ -19,8 +19,8 @@ def get_topology_active_adj_matrix(sampler, n):
                   file=sys.stderr)
             exit(0)
 
-    for i in nodes_considered:
-        A[i] = list()
+    for node in nodes_considered:
+        A[node] = list()
 
     for node_1, node_2 in sampler.edgelist:
         if node_1 in nodes_considered and node_2 in nodes_considered:

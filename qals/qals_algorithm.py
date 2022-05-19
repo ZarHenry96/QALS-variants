@@ -178,10 +178,9 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         start_time = time.time()
         z_one = map_back(annealing(Theta_one, sampler, k), inverse_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
-        print("Ended in " + str(timedelta_z_one) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN"
-              + Colors.ENDC + "] ", end='')
+        print("Ended in " + str(timedelta_z_one))
 
-        print("Working on z2...", end=' ')
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z2...", end=' ')
         start_time = time.time()
         z_two = map_back(annealing(Theta_two, sampler, k), inverse_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
@@ -217,20 +216,20 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
     e = 0
     d = 0
-    i = 1
+    i = 0
     lambda_value = lambda_zero
-    total_time = 0
-    
+    iterations_time = 0
+
     while True:
         print("-" * 116)
         iteration_start_time = time.time()
-        if total_time:
-            string = str(datetime.timedelta(seconds=((total_time/i) * (i_max - i))))
+        if i != 0:
+            string = str(datetime.timedelta(seconds=((iterations_time/i) * (i_max - i))))
         else:
             string = "Not yet available"
         
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
-              f"] Cycle {i}/{i_max} -- {round((((i - 1) / i_max) * 100), 2)}% -- ETA {string}")
+              f"] Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
 
         try:
             Q_prime = sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type)
@@ -276,13 +275,14 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                         f_star = f_prime
                         perm_star = perm
                         e = 0
-                lambda_value = min(lambda_zero, (lambda_zero/(2+(i-1)-e)))
+                lambda_value = min(lambda_zero, (lambda_zero/(2+i-e)))
             else:
                 f_prime = None
                 e = e + 1
-            
-            iteration_timedelta = datetime.timedelta(seconds=(time.time()-iteration_start_time))
 
+            i += 1
+
+            iteration_timedelta = datetime.timedelta(seconds=(time.time() - iteration_start_time))
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                   + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lambda_value, 5)}, e = {e}, and d = {d}\n"
                   + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC + f"] "
@@ -293,7 +293,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                                                        np_vector_to_string(perm), np_vector_to_string(perm_star)])
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
-            total_time = total_time + (time.time() - iteration_start_time)
+            iterations_time = iterations_time + (time.time() - iteration_start_time)
 
             print("-" * 116 + "\n")
             if (i == i_max) or ((e + d >= N_max) and (d < d_min)):
@@ -304,19 +304,17 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                     print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "END" + Colors.ENDC + "] Exited at cycle "
                           + str(i) + "/" + str(i_max) + "\n")
                 break
-            
-            i = i + 1
         except KeyboardInterrupt:
             break
 
-    total_timedelta = datetime.timedelta(seconds=total_time)
-    if i != 1:
-        avg_response_time = datetime.timedelta(seconds=(total_time/(i-1)))
+    iterations_timedelta = datetime.timedelta(seconds=iterations_time)
+    if i != 0:
+        avg_iteration_time = datetime.timedelta(seconds=(iterations_time/i))
     else:
-        avg_response_time = datetime.timedelta(seconds=total_time)
+        avg_iteration_time = datetime.timedelta(seconds=iterations_time)
     
-    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average response time: "
-          + str(avg_response_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
-          + "] Total time: " + str(total_timedelta) + "\n")
+    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average iteration time: "
+          + str(avg_iteration_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
+          + "] Total iterations time: " + str(iterations_timedelta) + "\n")
 
-    return z_star, avg_response_time
+    return z_star, avg_iteration_time
