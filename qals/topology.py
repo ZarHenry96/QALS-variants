@@ -8,7 +8,7 @@ from qals.utils import Colors, now
 def get_topology_active_adj_matrix(sampler, n):
     A = dict()
 
-    sampler_nodes = list(sampler.nodelist)
+    sampler_nodes = sorted(list(sampler.nodelist))
     nodes_considered = list()
     for i in range(n):
         try:
@@ -30,38 +30,30 @@ def get_topology_active_adj_matrix(sampler, n):
     return A
 
 
+def extract_adj_matrix_from_graph(G, qubits_num):
+    graph_adj_matrix = nx.to_dict_of_lists(G)
+    nodes_considered = sorted(graph_adj_matrix.keys())[:qubits_num]
+
+    A = dict()
+    for node1 in nodes_considered:
+        A[node1] = list()
+        for node2 in graph_adj_matrix[node1]:
+            if node2 in nodes_considered:
+                A[node1].append(node2)
+
+    return A
+
+
 def generate_chimera_topology_adj_matrix(qubits_num):
     G = dnx.chimera_graph(16)
-    tmp = nx.to_dict_of_lists(G)
 
-    rows = []
-    cols = []
-    for i in range(qubits_num):
-        rows.append(i)
-        cols.append(i)
-        for j in tmp[i]:
-            if j < qubits_num:
-                rows.append(i)
-                cols.append(j)
-
-    return list(zip(rows, cols))
+    return extract_adj_matrix_from_graph(G, qubits_num)
 
 
 def generate_pegasus_topology_adj_matrix(qubits_num):
     G = dnx.pegasus_graph(16)
-    tmp = nx.to_numpy_matrix(G)
 
-    rows = []
-    cols = []
-    for i in range(qubits_num):
-        rows.append(i)
-        cols.append(i)
-        for j in range(qubits_num):
-            if tmp.item(i, j):
-                rows.append(i)
-                cols.append(j)
-
-    return list(zip(rows, cols))
+    return extract_adj_matrix_from_graph(G, qubits_num)
 
 
 def get_adj_matrix(simulation, topology, sampler, n):

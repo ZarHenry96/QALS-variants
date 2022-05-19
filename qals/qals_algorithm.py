@@ -21,7 +21,7 @@ def make_decision(probability):
     return random.random() < probability
 
 
-def random_shuffle(dictionary):
+def shuffle_dict(dictionary):
     keys = list(dictionary.keys())
     values = list(dictionary.values())
     random.shuffle(values)
@@ -36,7 +36,7 @@ def g(old_perm, p):
     for i in range(n):
         if make_decision(p):
             assoc_map[i] = i
-    assoc_map = random_shuffle(assoc_map)
+    assoc_map = shuffle_dict(assoc_map)
 
     perm = np.zeros(n, dtype=int)
     for i in range(n):
@@ -58,21 +58,16 @@ def invert(perm):
     return inverse
 
 
-def generate_weight_matrix(Q, inverse, A, simulation):
+def generate_weight_matrix(Q, inverse, A):
     Theta = dict()
-    if simulation:
-        for row, col in A:
-            k = inverse[row]
-            l = inverse[col]
-            Theta[row, col] = Q[k][l]
-    else:
-        node_pos_dict = dict(zip(A.keys(), np.arange(len(Q))))
-        for key in list(A.keys()):
-            k = inverse[node_pos_dict[key]]
-            Theta[key, key] = Q[k][k]
-            for elem in A[key]:
-                l = inverse[node_pos_dict[elem]]
-                Theta[key, elem] = Q[k][l]
+
+    node_pos_dict = dict(zip(A.keys(), np.arange(len(Q))))
+    for key in list(A.keys()):
+        k = inverse[node_pos_dict[key]]
+        Theta[key, key] = Q[k][k]
+        for elem in A[key]:
+            l = inverse[node_pos_dict[elem]]
+            Theta[key, elem] = Q[k][l]
               
     return Theta
 
@@ -145,13 +140,15 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
 
 def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, adj_matrix_json_file,
         qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
+    sampler, A, p, z_star, f_star, perm_star, S = None, None, None, None, None, None, None
+
     try:
         sampler, out_string = get_annealing_sampler(simulation, topology)
         print(out_string)
 
         A, out_string = get_adj_matrix(simulation, topology, sampler, n)
         with open(adj_matrix_json_file, 'w') as jf:
-            json.dump(A, jf, ensure_ascii=False, indent=(4 if not simulation else None))
+            json.dump(A, jf, ensure_ascii=False, indent=4)
         print(out_string)
 
         csv_write(csv_file=qals_csv_log_file, row=["i (end)", "p", "perturb", "opt_accept", "subopt_accept",
@@ -168,11 +165,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         perm_one = g(np.arange(n), p)
         inverse_one = invert(perm_one)
-        Theta_one = generate_weight_matrix(Q, inverse_one, A, simulation)
+        Theta_one = generate_weight_matrix(Q, inverse_one, A)
 
         perm_two = g(np.arange(n), p)
         inverse_two = invert(perm_two)
-        Theta_two = generate_weight_matrix(Q, inverse_two, A, simulation)
+        Theta_two = generate_weight_matrix(Q, inverse_two, A)
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
         start_time = time.time()
@@ -212,7 +209,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                                                    np_vector_to_string(perm), np_vector_to_string(perm_star)])
         csv_write(csv_file=tabu_csv_log_file, row=[0, tabu_to_string(S)])
     except KeyboardInterrupt:
-        exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Closing program...")
+        exit("\n\n[" + Colors.BOLD + Colors.OKGREEN + "KeyboardInterrupt" + Colors.ENDC + "] Exiting...")
 
     e = 0
     d = 0
@@ -239,7 +236,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
             perm = g(perm_star, p)
             inverse = invert(perm)
-            Theta_prime = generate_weight_matrix(Q_prime, inverse, A, simulation)
+            Theta_prime = generate_weight_matrix(Q_prime, inverse, A)
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
             start_time = time.time()
@@ -302,7 +299,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                           + str(i) + "/" + str(i_max) + " due to convergence.")
                 else:
                     print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "END" + Colors.ENDC + "] Exited at cycle "
-                          + str(i) + "/" + str(i_max) + "\n")
+                          + str(i) + "/" + str(i_max) + " -- 100% done\n")
                 break
         except KeyboardInterrupt:
             break
