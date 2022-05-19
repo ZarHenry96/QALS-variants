@@ -158,16 +158,19 @@ def main(config):
                       add_to_log_string("diff**2", round(diff_squared, 2)) + \
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
-        csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "z*", "f_Q(z*)"])
+        csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "z*", "f_Q(z*)",
+                                                   "avg. iteration time", "total time"])
         csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
-                                                   z_star, min_value_found])
+                                                   z_star, min_value_found, avg_iteration_time, total_timedelta])
     elif qap:
         log_string += add_to_log_string("penalty", penalty) + add_to_log_string("offset", offset) + \
                       add_to_log_string("objective function value", round(min_value_found + offset, 2))
         csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "offset", "f_Q(z*)",
-                                                   "objective function value (f_Q(z*) + offset)", "z*"])
+                                                   "objective function value (f_Q(z*) + offset)", "z*",
+                                                   "avg. iteration time", "total time"])
         csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, offset, min_value_found,
-                                                   min_value_found + offset, z_star])
+                                                   min_value_found + offset, z_star, avg_iteration_time,
+                                                   total_timedelta])
 
     elif tsp:
         output_df = pd.DataFrame(
