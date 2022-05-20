@@ -23,7 +23,7 @@ np.set_printoptions(linewidth=np.inf, threshold=sys.maxsize)
 
 
 def add_to_log_string(variable, value):
-    padding = 5 + max(10, len(variable)) - len(str(variable))
+    padding = 5 + max(11, len(variable)) - len(str(variable))
     return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
@@ -80,8 +80,8 @@ def main(config):
             num_values, max_value = len(S), max(S)
             max_value = extract_range_from_filepath(data_filepath, max_value)
 
-        out_dir = os.path.join(config['root_out_dir'], 'NPP',
-                               f'num_values_{num_values}_range_{max_value}' + ('_sim' if config['simulation'] else ''),
+        out_dir = os.path.join(config['root_out_dir'], 'NPP', f'num_values_{num_values}_range_{max_value}',
+                               '{}{}'.format(config['tabu_type'], '_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         out_files_prefix = os.path.join(out_dir, f'npp_{num_values}_{max_value}')
@@ -98,8 +98,8 @@ def main(config):
     elif qap:  # QAP problem
         data_filepath, problem_name = load_qap_params(config)
 
-        out_dir = os.path.join(config['root_out_dir'], 'QAP',
-                               f'{problem_name}' + ('_sim' if config['simulation'] else ''),
+        out_dir = os.path.join(config['root_out_dir'], 'QAP', f'{problem_name}',
+                               '{}{}'.format(config['tabu_type'], '_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         out_files_prefix = os.path.join(out_dir, f'qap_{problem_name}')
@@ -115,8 +115,8 @@ def main(config):
             nodes = load_nodes(data_filepath)
             num_nodes = len(nodes)
 
-        out_dir = os.path.join(config['root_out_dir'], 'TSP',
-                               f'nodes_{num_nodes}' + ('_sim' if config['simulation'] else ''),
+        out_dir = os.path.join(config['root_out_dir'], 'TSP', f'nodes_{num_nodes}',
+                               '{}{}'.format(config['tabu_type'], '_sim' if config['simulation'] else ''),
                                datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
         os.makedirs(out_dir, exist_ok=True)
         out_files_prefix = os.path.join(out_dir,  f'tsp_{num_nodes}')
@@ -183,7 +183,7 @@ def main(config):
                                                    z_star, min_value_found, avg_iteration_time, total_timedelta])
     elif qap:
         log_string += add_to_log_string("penalty", penalty) + add_to_log_string("offset", offset) + \
-                      add_to_log_string("objective function value", round(min_value_found + offset, 2))
+                      add_to_log_string("obj. f val.", round(min_value_found + offset, 2))
         csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "offset", "f_Q(z*)",
                                                    "objective function value (f_Q(z*) + offset)", "z*",
                                                    "avg. iteration time", "total time"])
