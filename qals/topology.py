@@ -63,27 +63,27 @@ def get_adj_matrix(simulation, topology, sampler, n):
         if topology.lower() == 'chimera':
             if n <= 2048:
                 A = generate_chimera_topology_adj_matrix(n)
-                string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " \
+                string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " \
                          + Colors.OKCYAN + "Using Chimera Topology \n" + Colors.ENDC
             else:
-                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
                       + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (2048)",
                       file=sys.stderr)
                 exit(0)
         else:
             if n <= 5640:
                 A = generate_pegasus_topology_adj_matrix(n)
-                string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER \
+                string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER \
                          + "Using Pegasus Topology \n" + Colors.ENDC
             else:
-                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
+                print(now() + " [" + Colors.BOLD + Colors.ERROR + "ERROR" + Colors.ENDC
                       + "] " + f"the number of QUBO variables ({n}) is larger than the topology size (5640)",
                       file=sys.stderr)
                 exit(0)
 
     else:
         A = get_topology_active_adj_matrix(sampler, n)
-        string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER \
+        string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER \
                  + f"Using {topology} Topology \n" + Colors.ENDC
 
     return A, string

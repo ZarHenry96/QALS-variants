@@ -8,7 +8,7 @@ import time
 from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
 
-from qals.solvers import get_annealing_sampler, annealing, stub_solver
+from qals.solvers import get_annealing_sampler, annealing
 from qals.topology import get_adj_matrix
 from qals.utils import Colors, now, csv_write, np_vector_to_string, tabu_to_string
 
@@ -155,10 +155,10 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                                                    "e", "d", "lambda", "f'", "f*", "non_perturbed_f", "z'", "z*",
                                                    "non_perturbed_z", "perm", "perm*"])
         csv_write(csv_file=tabu_csv_log_file, row=["i (end)", "S"])
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] d_min = " + str(d_min)
               + ", eta = " + str(eta) + ", i_max = " + str(i_max) + ", k = " + str(k) + ", lambda_0 = "
               + str(lambda_zero))
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] n = " + str(n) + ", N = "
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA IN" + Colors.ENDC + "] n = " + str(n) + ", N = "
               + str(N) + ", N_max = " + str(N_max) + ", p_delta = " + str(p_delta) + ", q = " + str(q) + "\n")
 
         p = 1
@@ -171,13 +171,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         inverse_two = invert(perm_two)
         Theta_two = generate_weight_matrix(Q, inverse_two, A)
 
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
         start_time = time.time()
         z_one = map_back(annealing(Theta_one, sampler, k), inverse_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one))
 
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z2...", end=' ')
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z2...", end=' ')
         start_time = time.time()
         z_two = map_back(annealing(Theta_two, sampler, k), inverse_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
@@ -217,18 +217,17 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     lambda_value = lambda_zero
     iterations_time = 0
 
-    while True:
-        print("-" * 116)
-        iteration_start_time = time.time()
-        if i != 0:
-            string = str(datetime.timedelta(seconds=((iterations_time/i) * (i_max - i))))
-        else:
-            string = "Not yet available"
-        
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
-              f"] Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
+    try:
+        while i != i_max and not ((e + d >= N_max) and (d < d_min)):
+            print("-" * 116)
+            iteration_start_time = time.time()
+            if i != 0:
+                string = str(datetime.timedelta(seconds=((iterations_time/i) * (i_max - i))))
+            else:
+                string = "Not yet available"
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
+                  f"] Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
 
-        try:
             Q_prime = sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type)
             
             if i % N == 0:
@@ -238,7 +237,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             inverse = invert(perm)
             Theta_prime = generate_weight_matrix(Q_prime, inverse, A)
             
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
             start_time = time.time()
             z_prime = map_back(annealing(Theta_prime, sampler, k), inverse)
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
@@ -280,7 +279,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             i += 1
 
             iteration_timedelta = datetime.timedelta(seconds=(time.time() - iteration_start_time))
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC
                   + f"] f_star = {round(f_star, 2)}, p = {p}, lambda = {round(lambda_value, 5)}, e = {e}, and d = {d}\n"
                   + now() + " [" + Colors.BOLD + Colors.OKGREEN + "DATA" + Colors.ENDC + f"] "
                   + f"Took {iteration_timedelta} in total")
@@ -291,18 +290,14 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             iterations_time = iterations_time + (time.time() - iteration_start_time)
-
             print("-" * 116 + "\n")
-            if (i == i_max) or ((e + d >= N_max) and (d < d_min)):
-                if i != i_max:
-                    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Exited at cycle "
-                          + str(i) + "/" + str(i_max) + " due to convergence.")
-                else:
-                    print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "END" + Colors.ENDC + "] Exited at cycle "
-                          + str(i) + "/" + str(i_max) + " -- 100% done\n")
-                break
-        except KeyboardInterrupt:
-            break
+
+        convergence = (i != i_max)
+        print(now() + " [" + Colors.BOLD + (Colors.OKGREEN if convergence else Colors.OKBLUE) + "END" +
+              Colors.ENDC + "] Exited at cycle " + str(i) + "/" + str(i_max) +
+              (" due to convergence." if convergence else " -- 100% done\n"))
+    except KeyboardInterrupt:
+        pass
 
     iterations_timedelta = datetime.timedelta(seconds=iterations_time)
     if i != 0:
@@ -310,7 +305,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     else:
         avg_iteration_time = datetime.timedelta(seconds=iterations_time)
     
-    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average iteration time: "
+    print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC + "] Average iteration time: "
           + str(avg_iteration_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
           + "] Total iterations time: " + str(iterations_timedelta) + "\n")
 
