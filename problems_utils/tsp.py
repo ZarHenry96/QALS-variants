@@ -367,7 +367,9 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
         bf['solution'], bf['cost'] = solve_tsp_brute_force(tsp_matrix)
         bf['refinement'], bf['avg_iter_time'] = False, None
         bf['tot_time'] = timedelta(seconds=(time.time()-start_bf))
-        bf['z_star'], bf['qubo_image'], bf['refined_z_star'], bf['refined_qubo_image'] = [], None, [], None
+        bf['z_star'] = points_order_to_binary_state(bf['solution'])
+        bf['qubo_image'] = function_f(Q, bf['z_star'])
+        bf['refined_z_star'], bf['refined_qubo_image'] = [], None
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
 

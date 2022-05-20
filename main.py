@@ -134,6 +134,7 @@ def main(config):
 
     # Output files
     qubo_matrix_csv_file = f'{out_files_prefix}_qubo_matrix.csv'
+    solver_info_csv_file = f'{out_files_prefix}_solver_info.csv'
     adj_matrix_json_file = f'{out_files_prefix}_adj_matrix.json'
     qals_csv_log_file = f'{out_files_prefix}_qals_log.csv'
     tabu_csv_log_file = f'{out_files_prefix}_tabu_log.csv'
@@ -158,9 +159,9 @@ def main(config):
                            k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
                            N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
                            q=qals_config['q'], Q=Q, topology=config['topology'],
-                           adj_matrix_json_file=adj_matrix_json_file, qals_csv_log_file=qals_csv_log_file,
-                           tabu_csv_log_file=tabu_csv_log_file, tabu_type=config['tabu_type'],
-                           simulation=config['simulation'])
+                           solver_info_csv_file=solver_info_csv_file, adj_matrix_json_file=adj_matrix_json_file,
+                           qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
+                           tabu_type=config['tabu_type'], simulation=config['simulation'])
     min_value_found = qals_algorithm.function_f(Q, z_star)
     total_timedelta = datetime.timedelta(seconds=(time.time() - start_time))
 

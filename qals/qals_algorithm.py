@@ -138,12 +138,15 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     return Q_prime
 
 
-def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, adj_matrix_json_file,
-        qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, solver_info_csv_file,
+        adj_matrix_json_file, qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
     sampler, A, p, z_star, f_star, perm_star, S = None, None, None, None, None, None, None
 
     try:
         sampler, out_string = get_annealing_sampler(simulation, topology)
+        if not simulation:
+            csv_write(csv_file=solver_info_csv_file, row=["name", "topology"])
+            csv_write(csv_file=solver_info_csv_file, row=[sampler.solver.name, sampler.properties['topology']['type']])
         print(out_string)
 
         A, out_string = get_adj_matrix(simulation, topology, sampler, n)
