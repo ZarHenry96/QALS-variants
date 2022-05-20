@@ -171,13 +171,13 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
         inverse_two = invert(perm_two)
         Theta_two = generate_weight_matrix(Q, inverse_two, A)
 
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z1...", end=' ')
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z1...", end=' ')
         start_time = time.time()
         z_one = map_back(annealing(Theta_one, sampler, k), inverse_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one))
 
-        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z2...", end=' ')
+        print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z2...", end=' ')
         start_time = time.time()
         z_two = map_back(annealing(Theta_two, sampler, k), inverse_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
@@ -226,7 +226,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             else:
                 string = "Not yet available"
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
-                  f"] Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
+                  f"]  Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
 
             Q_prime = sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type)
             
@@ -237,7 +237,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             inverse = invert(perm)
             Theta_prime = generate_weight_matrix(Q_prime, inverse, A)
             
-            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "] Working on z'...", end=' ')
+            print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z'...", end=' ')
             start_time = time.time()
             z_prime = map_back(annealing(Theta_prime, sampler, k), inverse)
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
@@ -293,7 +293,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             print("-" * 116 + "\n")
 
         convergence = (i != i_max)
-        print(now() + " [" + Colors.BOLD + (Colors.OKGREEN if convergence else Colors.OKBLUE) + "END" +
+        print(now() + " [" + Colors.BOLD + (Colors.OKGREEN if convergence else Colors.OKBLUE) + " END" +
               Colors.ENDC + "] Exited at cycle " + str(i) + "/" + str(i_max) +
               (" due to convergence." if convergence else " -- 100% done\n"))
     except KeyboardInterrupt:

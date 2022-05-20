@@ -27,6 +27,20 @@ def add_to_log_string(variable, value):
     return "[" + Colors.BOLD + str(variable) + Colors.ENDC + "]" + " "*padding + str(value) + "\n"
 
 
+def print_dict(d, level=0, list_on_levels=False):
+    for k, v in sorted(d.items()):
+        if isinstance(v, dict):
+            print('\t'*level + k+':')
+            print_dict(v, level+1, list_on_levels)
+        elif isinstance(v, list) and list_on_levels:
+            print('\t' * level + '{}: ['.format(k))
+            for element in v:
+                print('\t' * (level+1) + '{}'.format(element))
+            print('\t' * level + ']')
+        else:
+            print('\t'*level + '{}: {}'.format(k, v))
+
+
 def main(config):
     # Set the seed and create the output directory
     random.seed(config['random_seed'])
@@ -57,7 +71,7 @@ def main(config):
 
     # Select (or load) the problem parameters and build the QUBO matrix
     random.seed(problem_generation_seed)
-    print("\t\t" + Colors.BOLD + Colors.WARNING + "  BUILDING PROBLEM..." + Colors.ENDC)
+    print("\n\t" + Colors.BOLD + Colors.WARNING + "         BUILDING PROBLEM..." + Colors.ENDC)
     if npp:  # NPP problem
         data_filepath, num_values, max_value = load_npp_params(config)
 
@@ -116,6 +130,8 @@ def main(config):
         qubo_size = num_nodes ** 2
         qubo_problem_dict, Q, tsp_matrix = build_TSP_QUBO_problem(nodes, qubo_size)
 
+    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILT" + Colors.ENDC + "\n\n")
+
     # Output files
     qubo_matrix_csv_file = f'{out_files_prefix}_qubo_matrix.csv'
     adj_matrix_json_file = f'{out_files_prefix}_adj_matrix.json'
@@ -124,13 +140,15 @@ def main(config):
     solution_csv_file = f'{out_files_prefix}_solution.csv'
 
     # Save the experiment configuration and the QUBO matrix
+    print("\t" + Colors.BOLD + Colors.OKGREEN + "      EXPERIMENT CONFIGURATION" + Colors.ENDC)
+    config['res_dir'] = out_dir
+    print_dict(config)
+    del config['res_dir']
     with open(os.path.join(out_dir, 'config.json'), 'w') as json_config:
         json.dump(config, json_config, ensure_ascii=False, indent=4)
     pd.DataFrame(Q).to_csv(qubo_matrix_csv_file, index=False, header=False)
 
-    print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILT" + Colors.ENDC + "\n\n\t\t" +
-          Colors.BOLD + Colors.OKGREEN + "   START ALGORITHM" + Colors.ENDC + "\n")
-
+    print("\n\n\t\t" + Colors.BOLD + Colors.OKGREEN + "  START ALGORITHM" + Colors.ENDC + "\n")
     # Solve the problem using QALS
     start_time = time.time()
     qals_config = config['qals_params']
@@ -147,7 +165,7 @@ def main(config):
     total_timedelta = datetime.timedelta(seconds=(time.time() - start_time))
 
     # Prepare the output string and files
-    print("\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
+    print("\n\t\t\t" + Colors.BOLD + Colors.OKGREEN + "RESULTS" + Colors.ENDC + "\n")
     log_string = str()
     log_string += add_to_log_string("z*", "Look into " + out_dir)
     log_string += add_to_log_string("f_Q value", round(min_value_found, 2))
