@@ -151,18 +151,18 @@ def build_TSP_QUBO_problem(nodes_array, qubo_size):
     qubo_problem = dict()
 
     tsp_matrix = get_tsp_matrix(nodes_array)
-    constraint_constant = np.amax(tsp_matrix) * len(tsp_matrix)
-    cost_constant = 1
+    constraints_constant_A = np.amax(tsp_matrix) * len(tsp_matrix)
+    cost_constant_B = 1
 
-    add_cost_objective(tsp_matrix, cost_constant, qubo_problem)
-    add_time_constraints(tsp_matrix, constraint_constant, qubo_problem)
-    add_position_constraints(tsp_matrix, constraint_constant, qubo_problem)
+    add_cost_objective(tsp_matrix, cost_constant_B, qubo_problem)
+    add_time_constraints(tsp_matrix, constraints_constant_A, qubo_problem)
+    add_position_constraints(tsp_matrix, constraints_constant_A, qubo_problem)
 
     Q = np.zeros((qubo_size, qubo_size))
     for x, y in qubo_problem.keys():
         Q[x][y] = qubo_problem[x, y]
 
-    return qubo_problem, Q, tsp_matrix
+    return qubo_problem, Q, tsp_matrix, (constraints_constant_A, cost_constant_B)
 
 
 def calculate_cost(cost_matrix, solution):
@@ -305,7 +305,7 @@ def refine_TSP_solution(original_solution):
 
 
 def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_iteration_time,
-                                          total_timedelta, min_value_found):
+                                          total_timedelta, min_value_found, penalty_coefficients):
     output_dict = dict()
     output_dict['type'] = method
 
@@ -335,6 +335,8 @@ def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_stri
     output_dict['z_star'] = z_star
     output_dict['qubo_image'] = min_value_found
 
+    output_dict['A_penalty'], output_dict['B_penalty'] = penalty_coefficients[0], penalty_coefficients[1]
+
     return output_dict, log_string
 
 
@@ -348,9 +350,11 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['f_Q(z*)'][dictionary['type']] = dictionary['qubo_image']
     df['refined(z*)'][dictionary['type']] = dictionary['refined_z_star']
     df['f_Q(refined(z*))'][dictionary['type']] = dictionary['refined_qubo_image']
+    df['A penalty'][dictionary['type']] = dictionary['A_penalty']
+    df['B penalty'][dictionary['type']] = dictionary['B_penalty']
 
 
-def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
+def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds, penalty_coefficients,
               bruteforce=True, d_wave=True, hybrid=True):
     if bruteforce or d_wave or hybrid:
         print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
@@ -370,6 +374,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
         bf['z_star'] = points_order_to_binary_state(bf['solution'])
         bf['qubo_image'] = function_f(Q, bf['z_star'])
         bf['refined_z_star'], bf['refined_qubo_image'] = [], None
+        bf['A_penalty'], bf['B_penalty'] = penalty_coefficients[0], penalty_coefficients[1]
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + f"] Bruteforce completed ")
 
@@ -389,7 +394,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
         total_time = timedelta(seconds=(time.time()-start_qa))
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
-                                                      None, total_time, function_f(Q, z_star))
+                                                      None, total_time, function_f(Q, z_star), penalty_coefficients)
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
         add_TSP_info_to_out_df(out_df, qa)
@@ -405,7 +410,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds,
         total_time = timedelta(seconds=(time.time()-start_hy))
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, Q, None, tsp_matrix,
-                                                      None, total_time, function_f(Q, z_star))
+                                                      None, total_time, function_f(Q, z_star), penalty_coefficients)
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)

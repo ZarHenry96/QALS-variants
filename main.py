@@ -128,7 +128,7 @@ def main(config):
             shutil.copy2(data_filepath, data_file_copy_path)
 
         qubo_size = num_nodes ** 2
-        qubo_problem_dict, Q, tsp_matrix = build_TSP_QUBO_problem(nodes, qubo_size)
+        qubo_problem_dict, Q, tsp_matrix, penalty_coefficients = build_TSP_QUBO_problem(nodes, qubo_size)
 
     print("\t\t" + Colors.BOLD + Colors.OKGREEN + "   PROBLEM BUILT" + Colors.ENDC + "\n\n")
 
@@ -192,17 +192,23 @@ def main(config):
                                                    total_timedelta])
 
     elif tsp:
+        df_index = [
+            index for index, method_selected in zip(['QALS', 'Bruteforce', 'D-Wave', 'Hybrid'],
+                                                    [True, bruteforce, dwave, hybrid])
+            if method_selected
+        ]
         output_df = pd.DataFrame(
             columns=["solution", "cost", "refinement", "avg. iteration time", "total time (w/o refinement)",
-                     "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))"],
-            index=['QALS', 'Bruteforce', 'D-Wave', 'Hybrid']
+                     "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))", "A penalty", "B penalty"],
+            index=df_index
         )
         qals_output, log_string = \
             refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
-                                                  avg_iteration_time, total_timedelta, min_value_found)
+                                                  avg_iteration_time, total_timedelta, min_value_found,
+                                                  penalty_coefficients)
         add_TSP_info_to_out_df(output_df, qals_output)
 
-        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, other_seeds,
+        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, other_seeds, penalty_coefficients,
                   bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(solution_csv_file)
