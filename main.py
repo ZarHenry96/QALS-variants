@@ -154,7 +154,7 @@ def main(config):
     start_time = time.time()
     qals_config = config['qals_params']
     random.seed(qals_execution_seed)
-    z_star, avg_iteration_time = \
+    z_star, convergence, iterations_num, avg_iteration_time = \
         qals_algorithm.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
                            k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
                            N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
@@ -178,18 +178,19 @@ def main(config):
                       add_to_log_string("diff", np.sqrt(diff_squared))
 
         csv_write(csv_file=solution_csv_file, row=["c", "c**2", "diff**2", "diff", "z*", "f_Q(z*)",
-                                                   "avg. iteration time", "total time"])
+                                                   "convergence", "iterations", "avg. iteration time", "total time"])
         csv_write(csv_file=solution_csv_file, row=[c, c ** 2, diff_squared, np.sqrt(diff_squared),
-                                                   z_star, min_value_found, avg_iteration_time, total_timedelta])
+                                                   z_star, min_value_found, convergence, iterations_num,
+                                                   avg_iteration_time, total_timedelta])
     elif qap:
         log_string += add_to_log_string("penalty", penalty) + add_to_log_string("offset", offset) + \
                       add_to_log_string("obj. f val.", round(min_value_found + offset, 2))
         csv_write(csv_file=solution_csv_file, row=["problem", "penalty", "offset", "f_Q(z*)",
-                                                   "objective function value (f_Q(z*) + offset)", "z*",
-                                                   "avg. iteration time", "total time"])
+                                                   "objective function value (f_Q(z*) + offset)", "z*", "convergence",
+                                                   "iterations", "avg. iteration time", "total time"])
         csv_write(csv_file=solution_csv_file, row=[problem_name, penalty, offset, min_value_found,
-                                                   min_value_found + offset, z_star, avg_iteration_time,
-                                                   total_timedelta])
+                                                   min_value_found + offset, z_star, convergence, iterations_num,
+                                                   avg_iteration_time, total_timedelta])
 
     elif tsp:
         df_index = [
@@ -199,13 +200,14 @@ def main(config):
         ]
         output_df = pd.DataFrame(
             columns=["solution", "cost", "refinement", "avg. iteration time", "total time (w/o refinement)",
-                     "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))", "A penalty", "B penalty"],
+                     "z*", "f_Q(z*)", "refined(z*)", "f_Q(refined(z*))", "convergence", "iterations", "A penalty",
+                     "B penalty"],
             index=df_index
         )
         qals_output, log_string = \
             refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
-                                                  avg_iteration_time, total_timedelta, min_value_found,
-                                                  penalty_coefficients)
+                                                  avg_iteration_time, total_timedelta, min_value_found, convergence,
+                                                  iterations_num, penalty_coefficients)
         add_TSP_info_to_out_df(output_df, qals_output)
 
         solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, other_seeds, penalty_coefficients,

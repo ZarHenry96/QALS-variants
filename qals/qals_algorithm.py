@@ -220,6 +220,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     lambda_value = lambda_zero
     iterations_time = 0
 
+    convergence = False
     try:
         while i != i_max and not ((e + d >= N_max) and (d < d_min)):
             print("-" * 116)
@@ -312,4 +313,4 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
           + str(avg_iteration_time) + "\n" + now() + " [" + Colors.BOLD + Colors.OKGREEN + "TIME" + Colors.ENDC
           + "] Total iterations time: " + str(iterations_timedelta) + "\n")
 
-    return z_star, avg_iteration_time
+    return z_star, convergence, i, avg_iteration_time
