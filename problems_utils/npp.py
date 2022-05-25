@@ -68,10 +68,12 @@ def extract_range_from_filepath(filepath, max_value_found):
     return max_value
 
 
-def generate_and_save_numbers(num_values, max_value, data_file):
+def generate_and_save_numbers(num_values, max_value, data_file, random_seed):
+    rng = random.Random(random_seed)
+
     vect = [0 for _ in range(num_values)]
     for index in range(num_values):
-        vect[index] = random.randint(0, max_value)
+        vect[index] = rng.randint(0, max_value)
 
     # Save to csv file
     pd.DataFrame([vect], dtype=int).to_csv(data_file, index=False, header=False)

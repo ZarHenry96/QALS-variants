@@ -1,5 +1,4 @@
 import neal
-import random
 
 from dwave.system.samplers import DWaveSampler
 
@@ -32,5 +31,5 @@ def hybrid(theta, hybrid_sampler):
     return list(response.first.sample.values())
 
 
-def stub_solver(solution_length):
-    return [random.randint(0, 1) for _ in range(0, solution_length)]
+def stub_solver(solution_length, rng):
+    return [rng.randint(0, 1) for _ in range(0, solution_length)]

@@ -43,9 +43,9 @@ def print_dict(d, level=0, list_on_levels=False):
 
 def main(config):
     # Set the seed and create the output directory
-    random.seed(config['random_seed'])
-    problem_generation_seed, qals_execution_seed = random.randint(0, 1000000000), random.randint(0, 1000000000)
-    other_seeds = [random.randint(0, 1000000000) for _ in range(0, 3)]
+    rng_seeds = random.Random(config['random_seed'])
+    problem_generation_seed, qals_execution_seed, extra_seed = \
+        rng_seeds.randint(0, 1000000000), rng_seeds.randint(0, 1000000000), rng_seeds.randint(0, 1000000000)
 
     os.makedirs(config['root_out_dir'], exist_ok=True)
 
@@ -70,7 +70,6 @@ def main(config):
         exit(0)
 
     # Select (or load) the problem parameters and build the QUBO matrix
-    random.seed(problem_generation_seed)
     print("\n\t" + Colors.BOLD + Colors.WARNING + "         BUILDING PROBLEM..." + Colors.ENDC)
     if npp:  # NPP problem
         data_filepath, num_values, max_value = load_npp_params(config)
@@ -88,7 +87,7 @@ def main(config):
 
         data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
-            S = generate_and_save_numbers(num_values, max_value, data_file_copy_path)
+            S = generate_and_save_numbers(num_values, max_value, data_file_copy_path, problem_generation_seed)
         else:
             shutil.copy2(data_filepath, data_file_copy_path)
 
@@ -123,7 +122,7 @@ def main(config):
 
         data_file_copy_path = f'{out_files_prefix}_data.csv'
         if data_filepath is None:
-            nodes = generate_and_save_nodes(num_nodes, data_file_copy_path)
+            nodes = generate_and_save_nodes(num_nodes, data_file_copy_path, problem_generation_seed)
         else:
             shutil.copy2(data_filepath, data_file_copy_path)
 
@@ -153,12 +152,11 @@ def main(config):
     # Solve the problem using QALS
     start_time = time.time()
     qals_config = config['qals_params']
-    random.seed(qals_execution_seed)
     z_star, convergence, iterations_num, avg_iteration_time = \
         qals_algorithm.run(d_min=qals_config['d_min'], eta=qals_config['eta'], i_max=qals_config['i_max'],
                            k=qals_config['k'], lambda_zero=qals_config['lambda_zero'], n=qubo_size,
                            N=qals_config['N'], N_max=qals_config['N_max'], p_delta=qals_config['p_delta'],
-                           q=qals_config['q'], Q=Q, topology=config['topology'],
+                           q=qals_config['q'], Q=Q, topology=config['topology'], random_seed=qals_execution_seed,
                            solver_info_csv_file=solver_info_csv_file, adj_matrix_json_file=adj_matrix_json_file,
                            qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
                            tabu_type=config['tabu_type'], simulation=config['simulation'])
@@ -204,13 +202,14 @@ def main(config):
                      "B penalty"],
             index=df_index
         )
+        rng_refinement = random.Random(extra_seed)
         qals_output, log_string = \
             refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
                                                   avg_iteration_time, total_timedelta, min_value_found, convergence,
-                                                  iterations_num, penalty_coefficients)
+                                                  iterations_num, penalty_coefficients, rng_refinement)
         add_TSP_info_to_out_df(output_df, qals_output)
 
-        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, other_seeds, penalty_coefficients,
+        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, penalty_coefficients, rng_refinement,
                   bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(solution_csv_file)

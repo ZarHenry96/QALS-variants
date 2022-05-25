@@ -72,10 +72,12 @@ def load_tsp_params(config):
     return data_filepath, num_nodes, bruteforce, dwave, hybrid
 
 
-def generate_and_save_nodes(num_nodes, filepath):
+def generate_and_save_nodes(num_nodes, filepath, random_seed):
+    rng = random.Random(random_seed)
+
     num_coordinates, coordinates_range = 2, 10
     nodes_array = np.array([
-        [random.random() * coordinates_range for _ in range(0, num_coordinates)]
+        [rng.random() * coordinates_range for _ in range(0, num_coordinates)]
         for _ in range(0, num_nodes)
     ])
 
@@ -240,7 +242,7 @@ def binary_state_to_points_order(binary_state):
     return np.array(points_order)
 
 
-def refine_TSP_solution(original_solution):
+def refine_TSP_solution(original_solution, rng):
     num_nodes = int(np.sqrt(len(original_solution)))
 
     all_nodes = list(range(num_nodes))
@@ -270,7 +272,7 @@ def refine_TSP_solution(original_solution):
                     diff.append(node)
             
             if len(diff) > 0:
-                random_node = random.choice(diff)
+                random_node = rng.choice(diff)
                 refined_solution[i] = random_node
                 keep.add(random_node)
                 diff.clear()
@@ -281,7 +283,7 @@ def refine_TSP_solution(original_solution):
                 indexes.append(j)
 
         if len(indexes) > 1:
-            random.shuffle(indexes)
+            rng.shuffle(indexes)
             random_pos = indexes[0]
             for pos in indexes:
                 if pos == random_pos:
@@ -297,7 +299,7 @@ def refine_TSP_solution(original_solution):
         
     for i in range(num_nodes):
         if refined_solution[i] == -1:
-            random_node = random.choice(left)
+            random_node = rng.choice(left)
             refined_solution[i] = random_node
             left.remove(random_node)
 
@@ -306,13 +308,13 @@ def refine_TSP_solution(original_solution):
 
 def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_iteration_time,
                                           total_timedelta, min_value_found, convergence, iterations_num,
-                                          penalty_coefficients):
+                                          penalty_coefficients, rng):
     output_dict = dict()
     output_dict['type'] = method
 
     valid = check_solution_validity(z_star, num_nodes)
     if not valid:
-        output_dict['solution'] = refine_TSP_solution(z_star)
+        output_dict['solution'] = refine_TSP_solution(z_star, rng)
         output_dict['refinement'] = True
         output_dict['refined_z_star'] = points_order_to_binary_state(output_dict['solution'])
         output_dict['refined_qubo_image'] = function_f(Q, output_dict['refined_z_star'])
@@ -360,13 +362,12 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['B penalty'][dictionary['type']] = dictionary['B_penalty']
 
 
-def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds, penalty_coefficients,
+def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, penalty_coefficients, rng,
               bruteforce=True, d_wave=True, hybrid=True):
     if bruteforce or d_wave or hybrid:
         print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
 
     # bruteforce
-    random.seed(random_seeds[0])
     if bruteforce:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Solving problem with bruteforce ... ")
@@ -390,7 +391,6 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds, penalty_co
     num_nodes = len(tsp_matrix)
 
     # D-Wave quantum annealing
-    random.seed(random_seeds[1])
     if d_wave:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Start computing D-Wave solution ... ")
@@ -402,13 +402,12 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds, penalty_co
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star), None, None,
-                                                      penalty_coefficients)
+                                                      penalty_coefficients, rng)
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
         add_TSP_info_to_out_df(out_df, qa)
 
     # Hybrid
-    random.seed(random_seeds[2])
     if hybrid:
         print(now() + " [" + Colors.BOLD + Colors.OKBLUE + "LOG" + Colors.ENDC
               + "] Start computing Hybrid solution ... ")
@@ -419,7 +418,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, random_seeds, penalty_co
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star), None, None,
-                                                      penalty_coefficients)
+                                                      penalty_coefficients, rng)
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)

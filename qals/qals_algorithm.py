@@ -17,26 +17,26 @@ def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T).item()
 
 
-def make_decision(probability):
-    return random.random() < probability
+def make_decision(probability, rng):
+    return rng.random() < probability
 
 
-def shuffle_dict(dictionary):
+def shuffle_dict(dictionary, rng):
     keys = list(dictionary.keys())
     values = list(dictionary.values())
-    random.shuffle(values)
+    rng.shuffle(values)
 
     return dict(zip(keys, values))
 
 
-def g(old_perm, p):
+def g(old_perm, p, rng):
     n = len(old_perm)
 
     assoc_map = dict()
     for i in range(n):
-        if make_decision(p):
+        if make_decision(p, rng):
             assoc_map[i] = i
-    assoc_map = shuffle_dict(assoc_map)
+    assoc_map = shuffle_dict(assoc_map, rng)
 
     perm = np.zeros(n, dtype=int)
     for i in range(n):
@@ -82,11 +82,11 @@ def map_back(z, inverse):
     return z_ret
 
 
-def h(vector, p):
+def h(vector, p, rng):
     n = len(vector)
 
     for i in range(n):
-        if make_decision(p):
+        if make_decision(p, rng):
             vector[i] = int((vector[i] + 1) % 2)
 
     return vector
@@ -138,9 +138,13 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     return Q_prime
 
 
-def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, solver_info_csv_file,
+def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, random_seed, solver_info_csv_file,
         adj_matrix_json_file, qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
     sampler, A, p, z_star, f_star, perm_star, S = None, None, None, None, None, None, None
+
+    rng_seeds = random.Random(random_seed)
+    rng_generic = random.Random(rng_seeds.randint(0, 1000000000))
+    rng_subopt_accept = random.Random(rng_seeds.randint(0, 1000000000))
 
     try:
         sampler, out_string = get_annealing_sampler(simulation, topology)
@@ -166,11 +170,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         p = 1
 
-        perm_one = g(np.arange(n), p)
+        perm_one = g(np.arange(n), p, rng_generic)
         inverse_one = invert(perm_one)
         Theta_one = generate_weight_matrix(Q, inverse_one, A)
 
-        perm_two = g(np.arange(n), p)
+        perm_two = g(np.arange(n), p, rng_generic)
         inverse_two = invert(perm_two)
         Theta_two = generate_weight_matrix(Q, inverse_two, A)
 
@@ -237,7 +241,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             if i % N == 0:
                 p = p - ((p - p_delta)*eta)
 
-            perm = g(perm_star, p)
+            perm = g(perm_star, p, rng_generic)
             inverse = invert(perm)
             Theta_prime = generate_weight_matrix(Q_prime, inverse, A)
             
@@ -250,11 +254,11 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             perturbation, non_perturbed_z, non_perturbed_f, optimal_acceptance, suboptimal_acceptance = \
                 False, None, None, False, False
 
-            if make_decision(q):
+            if make_decision(q, rng_generic):
                 perturbation = True
                 non_perturbed_z = np.copy(z_prime)
                 non_perturbed_f = function_f(Q, z_prime)
-                z_prime = h(z_prime, p)
+                z_prime = h(z_prime, p, rng_generic)
 
             if (z_prime != z_star).any():
                 f_prime = function_f(Q, z_prime)
@@ -269,7 +273,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                     S = add_to_tabu(S, z_prime, n, tabu_type)
                 else:
                     d = d + 1
-                    if make_decision((p-p_delta)**(f_prime-f_star)):
+                    if make_decision((p-p_delta)**(f_prime-f_star), rng_subopt_accept):
                         suboptimal_acceptance = True
                         z_prime, z_star = z_star, z_prime
                         f_star = f_prime
