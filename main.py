@@ -202,14 +202,17 @@ def main(config):
                      "B penalty"],
             index=df_index
         )
-        rng_refinement = random.Random(extra_seed)
+
+        rng_refinement_seeds = random.Random(extra_seed)
+        refinement_seeds = [rng_refinement_seeds.randint(0, 1000000000) for _ in range(0, 3)]
+
         qals_output, log_string = \
             refine_TSP_solution_and_format_output('QALS', z_star, num_nodes, Q, log_string, tsp_matrix,
                                                   avg_iteration_time, total_timedelta, min_value_found, convergence,
-                                                  iterations_num, penalty_coefficients, rng_refinement)
+                                                  iterations_num, penalty_coefficients, refinement_seeds[0])
         add_TSP_info_to_out_df(output_df, qals_output)
 
-        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, penalty_coefficients, rng_refinement,
+        solve_TSP(tsp_matrix, qubo_problem_dict, Q, output_df, penalty_coefficients, refinement_seeds[1:],
                   bruteforce=bruteforce, d_wave=dwave, hybrid=hybrid)
 
         output_df.to_csv(solution_csv_file)

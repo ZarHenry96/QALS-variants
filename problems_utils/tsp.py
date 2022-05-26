@@ -22,7 +22,7 @@ from dwave.system.samplers import DWaveSampler
 from problems_utils.utils import select_input_data
 
 from qals.qals_algorithm import function_f
-from qals.solvers import annealing, hybrid, stub_solver
+from qals.solvers import annealing, hybrid
 from qals.utils import Colors, now
 
 
@@ -308,12 +308,13 @@ def refine_TSP_solution(original_solution, rng):
 
 def refine_TSP_solution_and_format_output(method, z_star, num_nodes, Q, log_string, tsp_matrix, avg_iteration_time,
                                           total_timedelta, min_value_found, convergence, iterations_num,
-                                          penalty_coefficients, rng):
+                                          penalty_coefficients, random_seed):
     output_dict = dict()
     output_dict['type'] = method
 
     valid = check_solution_validity(z_star, num_nodes)
     if not valid:
+        rng = random.Random(random_seed)
         output_dict['solution'] = refine_TSP_solution(z_star, rng)
         output_dict['refinement'] = True
         output_dict['refined_z_star'] = points_order_to_binary_state(output_dict['solution'])
@@ -362,7 +363,7 @@ def add_TSP_info_to_out_df(df, dictionary):
     df['B penalty'][dictionary['type']] = dictionary['B_penalty']
 
 
-def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, penalty_coefficients, rng,
+def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, penalty_coefficients, random_seeds,
               bruteforce=True, d_wave=True, hybrid=True):
     if bruteforce or d_wave or hybrid:
         print("\t\t" + Colors.BOLD + Colors.HEADER + " TSP PROBLEM SOLVER..." + Colors.ENDC)
@@ -402,7 +403,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, penalty_coefficients, rn
 
         qa, _ = refine_TSP_solution_and_format_output('D-Wave', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star), None, None,
-                                                      penalty_coefficients, rng)
+                                                      penalty_coefficients, random_seeds[0])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] D-Wave solution computed")
 
         add_TSP_info_to_out_df(out_df, qa)
@@ -418,7 +419,7 @@ def solve_TSP(tsp_matrix, qubo_problem_dict, Q, out_df, penalty_coefficients, rn
 
         hy, _ = refine_TSP_solution_and_format_output('Hybrid', z_star, num_nodes, Q, None, tsp_matrix,
                                                       None, total_time, function_f(Q, z_star), None, None,
-                                                      penalty_coefficients, rng)
+                                                      penalty_coefficients, random_seeds[1])
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "END" + Colors.ENDC + "] Hybrid solution computed")
 
         add_TSP_info_to_out_df(out_df, hy)
