@@ -5,7 +5,7 @@
   },
   "additional_params": {},
   "root_out_dir": "results",
-  "random_seed": 42,
+  "random_seed": ${seed},
   "topology": "pegasus",
   "simulation": false,
   "tabu_type": "${tabu_type}",
