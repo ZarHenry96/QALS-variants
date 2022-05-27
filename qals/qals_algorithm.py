@@ -92,7 +92,7 @@ def h(vector, p, rng):
     return vector
 
 
-def to_ising(z):
+def binary_vector_to_spin(z):
     return np.where(z == 0, -1, 1)
 
 
@@ -100,18 +100,34 @@ def add_to_tabu(S, z_prime, n, tabu_type):
     if tabu_type == 'binary':
         S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int) + np.diagflat(z_prime)
     elif tabu_type == 'spin':
-        z_prime_spin = to_ising(z_prime)
+        z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int) + np.diagflat(z_prime_spin)
     elif tabu_type == 'binary_no_diag':
         S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int)
     elif tabu_type == 'spin_no_diag':
-        z_prime_spin = to_ising(z_prime)
+        z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
     elif tabu_type == 'hopfield_like':
-        z_prime_spin = to_ising(z_prime)
+        z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
 
     return S
+
+
+def spin_tabu_to_binary(S_spin, n):
+    S_binary = np.zeros(shape=(n, n))
+    for i in range(len(S_spin)):
+        # linear
+        S_binary[i][i] += 2. * S_spin[i][i]
+        for j in range(i + 1, len(S_spin)):
+            # quadratic
+            quadratic_bias = S_spin[i][j] + S_spin[j][i]
+            if quadratic_bias != 0.0:
+                S_binary[i][j] = 4. * quadratic_bias
+                S_binary[i][i] -= 2. * quadratic_bias
+                S_binary[j][j] -= 2. * quadratic_bias
+
+    return S_binary
 
 
 def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
@@ -119,15 +135,8 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     if tabu_type in ['binary', 'binary_no_diag', 'hopfield_like']:
         Q_prime = np.add(Q, (np.multiply(lambda_value, S)))
     elif tabu_type in ['spin', 'spin_no_diag']:
-        # Compute linear (h) and quadratic (J) coefficients
-        bqm = BinaryQuadraticModel.from_qubo(S)
-        h_values, J = bqm.linear, bqm.quadratic
-
-        # Convert Ising {-1,+1} formulation into QUBO {0,1}
-        S_binary_dict, offset = ising_to_qubo(h_values, J)
-        S_binary = np.zeros(shape=(n, n))
-        for (i, j) in S_binary_dict.keys():
-            S_binary[i][j] = S_binary_dict[i, j]
+        # Convert spin-based tabu into binary
+        S_binary = spin_tabu_to_binary(S, n)
 
         # Sum as usual
         Q_prime = np.add(Q, (np.multiply(lambda_value, S_binary)))
