@@ -5,9 +5,6 @@ import random
 import sys
 import time
 
-from dimod.binary_quadratic_model import BinaryQuadraticModel
-from dimod import ising_to_qubo
-
 from qals.solvers import get_annealing_sampler, annealing
 from qals.topology import get_adj_matrix
 from qals.utils import Colors, now, csv_write, np_vector_to_string, tabu_to_string
