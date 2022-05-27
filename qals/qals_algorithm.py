@@ -139,7 +139,7 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
 
 
 def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, random_seed, solver_info_csv_file,
-        adj_matrix_json_file, qals_csv_log_file, tabu_csv_log_file, tabu_type, simulation):
+        adj_matrix_json_file, qals_csv_log_file, tabu_csv_log_file, tabu_log_frequency, tabu_type, simulation):
     sampler, A, p, z_star, f_star, perm_star, S = None, None, None, None, None, None, None
 
     rng_seeds = random.Random(random_seed)
@@ -295,10 +295,14 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
                                                        e, d, lambda_value, f_prime, f_star, non_perturbed_f,
                                                        z_prime if f_prime else None, z_star, non_perturbed_z,
                                                        np_vector_to_string(perm), np_vector_to_string(perm_star)])
-            csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
+            if i % tabu_log_frequency == 0:
+                csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
             iterations_time = iterations_time + (time.time() - iteration_start_time)
             print("-" * 116 + "\n")
+
+        if i % tabu_log_frequency != 0:
+            csv_write(csv_file=tabu_csv_log_file, row=[i, tabu_to_string(S)])
 
         convergence = (i != i_max)
         print(now() + " [" + Colors.BOLD + (Colors.OKGREEN if convergence else Colors.OKBLUE) + " END" +

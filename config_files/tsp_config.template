@@ -9,6 +9,7 @@
   "topology": "pegasus",
   "simulation": false,
   "tabu_type": "${tabu_type}",
+  "tabu_log_frequency": 500,
   "qals_params": {
     "d_min": 70,
     "eta": 0.2,

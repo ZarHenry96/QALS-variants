@@ -159,7 +159,8 @@ def main(config):
                            q=qals_config['q'], Q=Q, topology=config['topology'], random_seed=qals_execution_seed,
                            solver_info_csv_file=solver_info_csv_file, adj_matrix_json_file=adj_matrix_json_file,
                            qals_csv_log_file=qals_csv_log_file, tabu_csv_log_file=tabu_csv_log_file,
-                           tabu_type=config['tabu_type'], simulation=config['simulation'])
+                           tabu_log_frequency=config['tabu_log_frequency'], tabu_type=config['tabu_type'],
+                           simulation=config['simulation'])
     min_value_found = qals_algorithm.function_f(Q, z_star)
     total_timedelta = datetime.timedelta(seconds=(time.time() - start_time))
 
