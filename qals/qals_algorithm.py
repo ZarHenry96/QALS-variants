@@ -5,6 +5,9 @@ import random
 import sys
 import time
 
+from dimod.binary_quadratic_model import BinaryQuadraticModel
+from dimod import ising_to_qubo
+
 from qals.solvers import get_annealing_sampler, annealing
 from qals.topology import get_adj_matrix
 from qals.utils import Colors, now, csv_write, np_vector_to_string, tabu_to_string
@@ -132,8 +135,15 @@ def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
     if tabu_type in ['binary', 'binary_no_diag', 'hopfield_like']:
         Q_prime = np.add(Q, (np.multiply(lambda_value, S)))
     elif tabu_type in ['spin', 'spin_no_diag']:
-        # Convert spin-based tabu into binary
-        S_binary = spin_tabu_to_binary(S, n)
+        # Compute linear (h) and quadratic (J) coefficients
+        bqm = BinaryQuadraticModel.from_qubo(S)
+        h_values, J = bqm.linear, bqm.quadratic
+
+        # Convert Ising {-1,+1} formulation into QUBO {0,1}
+        S_binary_dict, offset = ising_to_qubo(h_values, J)
+        S_binary = np.zeros(shape=(n, n))
+        for (i, j) in S_binary_dict.keys():
+            S_binary[i][j] = S_binary_dict[i, j]
 
         # Sum as usual
         Q_prime = np.add(Q, (np.multiply(lambda_value, S_binary)))
