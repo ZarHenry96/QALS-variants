@@ -2,7 +2,6 @@ import datetime
 import json
 import numpy as np
 import random
-import sys
 import time
 
 from dimod.binary_quadratic_model import BinaryQuadraticModel
@@ -96,62 +95,37 @@ def binary_vector_to_spin(z):
     return np.where(z == 0, -1, 1)
 
 
+def spin_tabu_to_binary(S_spin, n):
+    # Compute linear (h_values) and quadratic (J) coefficients
+    bqm = BinaryQuadraticModel.from_qubo(S_spin)
+    h_values, J = bqm.linear, bqm.quadratic
+
+    # Convert Ising {-1,+1} formulation into QUBO {0,1}
+    S_binary_dict, offset = ising_to_qubo(h_values, J)
+    S_binary = np.zeros(shape=(n, n))
+    for (i, j) in S_binary_dict.keys():
+        S_binary[i][j] = S_binary_dict[i, j]
+
+    return S_binary
+
+
 def add_to_tabu(S, z_prime, n, tabu_type):
     if tabu_type == 'binary':
         S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int) + np.diagflat(z_prime)
     elif tabu_type == 'spin':
         z_prime_spin = binary_vector_to_spin(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int) + np.diagflat(z_prime_spin)
+        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+                                    + np.diagflat(z_prime_spin), n)
     elif tabu_type == 'binary_no_diag':
         S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int)
     elif tabu_type == 'spin_no_diag':
         z_prime_spin = binary_vector_to_spin(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int), n)
     elif tabu_type == 'hopfield_like':
         z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
 
     return S
-
-
-def spin_tabu_to_binary(S_spin, n):
-    S_binary = np.zeros(shape=(n, n))
-    for i in range(len(S_spin)):
-        # linear
-        S_binary[i][i] += 2. * S_spin[i][i]
-        for j in range(i + 1, len(S_spin)):
-            # quadratic
-            quadratic_bias = S_spin[i][j] + S_spin[j][i]
-            if quadratic_bias != 0.0:
-                S_binary[i][j] = 4. * quadratic_bias
-                S_binary[i][i] -= 2. * quadratic_bias
-                S_binary[j][j] -= 2. * quadratic_bias
-
-    return S_binary
-
-
-def sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type):
-    Q_prime = None
-    if tabu_type in ['binary', 'binary_no_diag', 'hopfield_like']:
-        Q_prime = np.add(Q, (np.multiply(lambda_value, S)))
-    elif tabu_type in ['spin', 'spin_no_diag']:
-        # Compute linear (h) and quadratic (J) coefficients
-        bqm = BinaryQuadraticModel.from_qubo(S)
-        h_values, J = bqm.linear, bqm.quadratic
-
-        # Convert Ising {-1,+1} formulation into QUBO {0,1}
-        S_binary_dict, offset = ising_to_qubo(h_values, J)
-        S_binary = np.zeros(shape=(n, n))
-        for (i, j) in S_binary_dict.keys():
-            S_binary[i][j] = S_binary_dict[i, j]
-
-        # Sum as usual
-        Q_prime = np.add(Q, (np.multiply(lambda_value, S_binary)))
-    else:
-        print('Execution modality not supported!', file=sys.stderr)
-        exit(0)
-
-    return Q_prime
 
 
 def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology, random_seed, solver_info_csv_file,
@@ -252,7 +226,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "PRG" + Colors.ENDC +
                   f"]  Cycle {i+1}/{i_max} -- {round(((i / i_max) * 100), 2)}% done -- ETA {string}")
 
-            Q_prime = sum_Q_and_tabu(Q, S, lambda_value, n, tabu_type)
+            Q_prime = np.add(Q, (np.multiply(lambda_value, S)))
             
             if i % N == 0:
                 p = p - ((p - p_delta)*eta)
