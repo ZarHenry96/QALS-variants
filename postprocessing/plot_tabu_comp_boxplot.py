@@ -18,7 +18,7 @@ def plot_boxplot(boxes_data, x_ticks_labels, target_value, x_label, y_label, tit
 
     if target_value is not None:
         plt.hlines(target_value, 0.5, len(boxes_data) + 0.5, label='Target value', linestyles='--', colors='black')
-        plt.legend(loc='upper left')
+        plt.legend(loc='upper right')
 
     plt.xlabel(x_label, fontsize=13, labelpad=16)
     plt.ylabel(y_label, fontsize=13, labelpad=16)
