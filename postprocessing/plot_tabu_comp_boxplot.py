@@ -56,7 +56,7 @@ def main(root_res_dir, solution_key, target_value, qals_paper_value, x_label, y_
     for tabu_type, tabu_dir in tabu_types_and_dirs:
         tabu_type_runs_results = []
 
-        for run_dirname in os.listdir(tabu_dir):
+        for run_dirname in sorted(os.listdir(tabu_dir)):
             run_dir = os.path.join(tabu_dir, run_dirname)
             if os.path.isdir(run_dir):
                 solution_file = [
