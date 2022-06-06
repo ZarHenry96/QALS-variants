@@ -3,6 +3,7 @@ import json
 import numpy as np
 import random
 import time
+import sys
 
 from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
@@ -124,6 +125,11 @@ def add_to_tabu(S, z_prime, n, tabu_type):
     elif tabu_type == 'hopfield_like':
         z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+    elif tabu_type == 'no_tabu':
+        S = S
+    else:
+        print('Unknown tabu_type \'{}\'!'.format(tabu_type), file=sys.stderr)
+        exit(0)
 
     return S
 
