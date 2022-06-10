@@ -61,6 +61,20 @@ def generate_pegasus_topology_adj_matrix(qubits_num):
     return build_A_for_simulation(graph_adj_matrix, nodes_considered)
 
 
+def generate_complete_graph_adj_matrix(qubits_num):
+    A = dict()
+
+    for i in range(0, qubits_num):
+        A[i] = list()
+
+    for i in range(0, qubits_num-1):
+        for j in range(i+1, qubits_num):
+            A[i].append(j)
+            A[j].append(i)
+
+    return A
+
+
 def get_active_adj_matrix(topology, sampler, qubits_num):
     A = dict()
 
@@ -89,12 +103,16 @@ def get_active_adj_matrix(topology, sampler, qubits_num):
 
 def get_adj_matrix(simulation, topology, sampler, qubits_num):
     A = None
+    name_to_be_printed = topology.capitalize()
 
     if simulation:
         if topology.lower() == 'chimera':
             A = generate_chimera_topology_adj_matrix(qubits_num)
         elif topology.lower() == 'pegasus':
             A = generate_pegasus_topology_adj_matrix(qubits_num)
+        elif topology.lower() == 'complete':
+            A = generate_complete_graph_adj_matrix(qubits_num)
+            name_to_be_printed = 'a complete graph'
         else:
             print(f"Unknown annealer topology '{topology}'!")
             exit(0)
@@ -102,6 +120,6 @@ def get_adj_matrix(simulation, topology, sampler, qubits_num):
         A = get_active_adj_matrix(topology, sampler, qubits_num)
 
     string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.HEADER \
-             + f"Using {topology.capitalize()} Topology \n" + Colors.ENDC
+             + f"Using {name_to_be_printed} topology \n" + Colors.ENDC
 
     return A, string

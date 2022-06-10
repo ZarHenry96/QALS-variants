@@ -9,7 +9,7 @@ def get_annealing_sampler(simulation, topology):
     if simulation:
         sampler = neal.SimulatedAnnealingSampler()
         string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN \
-                 + "Algorithm Started in Simulation Modality (ideal annealer topology & simulated annealing sampler)" \
+                 + "Algorithm Started in Simulation Modality (ideal topology & simulated annealing sampler)" \
                  + Colors.ENDC
     else:
         sampler = DWaveSampler({'topology__type': topology})
