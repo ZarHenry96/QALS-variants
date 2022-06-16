@@ -125,6 +125,9 @@ def add_to_tabu(S, z_prime, n, tabu_type):
     elif tabu_type == 'hopfield_like':
         z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+    elif tabu_type == 'only_diag':
+        z_prime_spin = binary_vector_to_spin(z_prime)
+        S = S + spin_tabu_to_binary(np.diagflat(z_prime_spin), n)
     elif tabu_type == 'no_tabu':
         S = S
     else:
