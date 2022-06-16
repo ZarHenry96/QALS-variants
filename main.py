@@ -70,7 +70,7 @@ def main(config):
         exit(0)
 
     # Select (or load) the problem parameters and build the QUBO matrix
-    print("\n\t" + Colors.BOLD + Colors.WARNING + "         BUILDING PROBLEM..." + Colors.ENDC)
+    print("\n\t" + Colors.BOLD + Colors.WARNING + "         PROBLEM BUILDING..." + Colors.ENDC)
     if npp:  # NPP problem
         data_filepath, num_values, max_value = load_npp_params(config)
 
