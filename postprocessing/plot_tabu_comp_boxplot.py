@@ -6,6 +6,39 @@ import pandas as pd
 import os
 import re
 
+from scipy.stats import wilcoxon
+
+
+def print_values_and_stats(results, target_value, qals_paper_value, stats):
+    max_key_length = max([len(key) for key in results.keys()] +
+                         [len('Target value') if target_value is not None else 0,
+                          len('QALS paper value') if qals_paper_value is not None else 0])
+
+    print('Results:')
+    for key, value in results.items():
+        print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', value))
+    if target_value is not None:
+        key = 'Target value'
+        print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', target_value))
+    if qals_paper_value is not None:
+        key = 'QALS paper value'
+        print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', qals_paper_value))
+
+    if stats:
+        print('Statistical differences (p-values):')
+        if len({len(i) for i in results.values()}) == 1:
+            keys_list = list(results.keys())
+            keys_pairs = [(a, b) for idx, a in enumerate(keys_list) for b in keys_list[idx + 1:]]
+            for key_1, key_2 in keys_pairs:
+                if np.any(np.array(results[key_1]) - np.array(results[key_2])):
+                    statistic, p_value = wilcoxon(results[key_1], results[key_2])
+                else:
+                    statistic, p_value = None, 1
+                print('    {} - {}:{}{}'.format(key_1, key_2, (2 * max_key_length - len(key_1) - len(key_2) + 1) * ' ',
+                                                p_value))
+        else:
+            print('    The number of values is not the same for all boxplots!')
+
 
 def plot_boxplot(boxes_data, x_ticks_labels, target_value, qals_paper_value, x_label, y_label, title, y_limits,
                  out_file):
@@ -44,7 +77,7 @@ def plot_boxplot(boxes_data, x_ticks_labels, target_value, qals_paper_value, x_l
 
 
 def main(root_res_dir, solution_key, target_value, qals_paper_value, x_label, y_label, title, y_limits, out_filename,
-         verbose):
+         verbose, stats):
     results = {}
 
     tabu_types_and_dirs = sorted([
@@ -72,18 +105,7 @@ def main(root_res_dir, solution_key, target_value, qals_paper_value, x_label, y_
         results[tabu_type] = tabu_type_runs_results
 
     if verbose:
-        print('Results:')
-        max_key_length = max([len(key) for key in results.keys()] +
-                             [len('Target value') if target_value is not None else 0,
-                              len('QALS paper value') if qals_paper_value is not None else 0])
-        for key, value in results.items():
-            print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', value))
-        if target_value is not None:
-            key = 'Target value'
-            print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', target_value))
-        if qals_paper_value is not None:
-            key = 'QALS paper value'
-            print('    {}:{}{}'.format(key, (max_key_length - len(key) + 1) * ' ', qals_paper_value))
+        print_values_and_stats(results, target_value, qals_paper_value, stats)
 
     plot_boxplot(list(results.values()), list(results.keys()), target_value, qals_paper_value, x_label, y_label, title,
                  y_limits, os.path.join(root_res_dir, out_filename))
@@ -112,8 +134,11 @@ if __name__ == '__main__':
                         help='output filename (it will be saved inside the root-res-dir.')
     parser.add_argument('--verbose', dest='verbose', action='store_const', const=True, default=False,
                         help='print the boxplots values on the terminal.')
+    parser.add_argument('--stats', dest='stats', action='store_const', const=True, default=False,
+                        help='print the statistical differences (p-values for paired data) on the terminal; the '
+                             '\'verbose\' flag must be enabled and the number of values per boxplot must be the same.')
     args = parser.parse_args()
 
     if args.root_res_dir is not None:
         main(args.root_res_dir, args.solution_key, args.target_value, args.qals_paper_value, args.x_label, args.y_label,
-             args.title, args.y_limits, args.out_filename, args.verbose)
+             args.title, args.y_limits, args.out_filename, args.verbose, args.stats)
