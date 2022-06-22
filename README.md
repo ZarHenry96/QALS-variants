@@ -10,3 +10,5 @@ The tabu types supported (`tabu_type` parameter) are the following:
 - `binary_no_diag`
 - `spin_no_diag`
 - `hopfield_like`
+- `only_diag`
+- `no_tabu`

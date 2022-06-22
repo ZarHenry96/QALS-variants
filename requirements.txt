@@ -1,4 +1,4 @@
-datetime
 dwave-ocean-sdk
+matplotlib
 numpy
 pandas

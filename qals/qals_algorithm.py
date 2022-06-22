@@ -118,7 +118,7 @@ def add_to_tabu(S, z_prime, n, tabu_type):
         S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
                                     + np.diagflat(z_prime_spin), n)
     elif tabu_type == 'binary_no_diag':
-        S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int)
+        S = S + np.outer(z_prime, z_prime) - np.diagflat(z_prime)
     elif tabu_type == 'spin_no_diag':
         z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int), n)
