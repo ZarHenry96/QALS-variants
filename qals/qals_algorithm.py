@@ -74,8 +74,8 @@ def generate_weight_matrix(Q, inverse, A):
 
 def map_back(z, inverse):
     n = len(z)
-    z_ret = np.zeros(n, dtype=int)
 
+    z_ret = np.zeros(n, dtype=int)
     for i in range(n):
         z_ret[i] = int(z[inverse[i]])
 
