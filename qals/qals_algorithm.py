@@ -144,6 +144,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
     rng_seeds = random.Random(random_seed)
     rng_generic = random.Random(rng_seeds.randint(0, 1000000000))
     rng_subopt_accept = random.Random(rng_seeds.randint(0, 1000000000))
+    rng_simulation = random.Random(rng_seeds.randint(0, 1000000000))
 
     try:
         sampler, out_string = get_annealing_sampler(simulation, topology)
@@ -179,13 +180,15 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z1...", end=' ')
         start_time = time.time()
-        z_one = map_back(annealing(Theta_one, sampler, k), inverse_one)
+        sim_seed = rng_simulation.randint(0, 1000000000) if simulation else None
+        z_one = map_back(annealing(Theta_one, sampler, k, sim_seed=sim_seed), inverse_one)
         timedelta_z_one = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in " + str(timedelta_z_one))
 
         print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z2...", end=' ')
         start_time = time.time()
-        z_two = map_back(annealing(Theta_two, sampler, k), inverse_two)
+        sim_seed = rng_simulation.randint(0, 1000000000) if simulation else None
+        z_two = map_back(annealing(Theta_two, sampler, k, sim_seed=sim_seed), inverse_two)
         timedelta_z_two = datetime.timedelta(seconds=(time.time()-start_time))
         print("Ended in "+str(timedelta_z_two)+"\n")
 
@@ -246,7 +249,8 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             
             print(now() + " [" + Colors.BOLD + Colors.OKGREEN + "ANN" + Colors.ENDC + "]  Working on z'...", end=' ')
             start_time = time.time()
-            z_prime = map_back(annealing(Theta_prime, sampler, k), inverse)
+            sim_seed = rng_simulation.randint(0, 1000000000) if simulation else None
+            z_prime = map_back(annealing(Theta_prime, sampler, k, sim_seed=sim_seed), inverse)
             timedelta_z_prime = datetime.timedelta(seconds=(time.time()-start_time))
             print("Ended in "+str(timedelta_z_prime))
 

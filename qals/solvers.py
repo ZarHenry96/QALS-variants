@@ -1,13 +1,12 @@
-import neal
-
 from dwave.system.samplers import DWaveSampler
+from neal import SimulatedAnnealingSampler
 
 from qals.utils import Colors, now
 
 
 def get_annealing_sampler(simulation, topology):
     if simulation:
-        sampler = neal.SimulatedAnnealingSampler()
+        sampler = SimulatedAnnealingSampler()
         string = now() + " [" + Colors.BOLD + Colors.OKGREEN + "LOG" + Colors.ENDC + "] " + Colors.OKCYAN \
                  + "Algorithm Started in Simulation Modality (ideal topology & simulated annealing sampler)" \
                  + Colors.ENDC
@@ -19,8 +18,15 @@ def get_annealing_sampler(simulation, topology):
     return sampler, string
 
 
-def annealing(theta, annealing_sampler, k):
-    response = annealing_sampler.sample_qubo(theta, num_reads=k)
+def annealing(theta, annealing_sampler, k, sim_seed=None):
+    response = None
+    if isinstance(annealing_sampler, DWaveSampler):
+        response = annealing_sampler.sample_qubo(theta, num_reads=k)
+    elif isinstance(annealing_sampler, SimulatedAnnealingSampler):
+        response = annealing_sampler.sample_qubo(theta, num_reads=k, seed=sim_seed)
+    else:
+        print('The annealing sampler belongs to an unknown class')
+        exit(0)
     
     return list(response.first.sample.values())
 
