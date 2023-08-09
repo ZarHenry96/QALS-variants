@@ -98,8 +98,14 @@ def binary_vector_to_spin(z):
 
 def spin_tabu_to_binary(S_spin, n):
     # Compute linear (h_values) and quadratic (J) coefficients
-    bqm = BinaryQuadraticModel.from_qubo(S_spin)
-    h_values, J = bqm.linear, bqm.quadratic
+    h_values, J = dict(), dict()
+    for i in range(S_spin.shape[0]):
+        for j in range(S_spin.shape[1]):
+            if i == j:
+                h_values[i] = S_spin[i][i]
+            else:
+                lw_indx, up_indx = min(i, j), max(i, j)
+                J[lw_indx, up_indx] = J.get((lw_indx, up_indx), 0) + S_spin[i][j]
 
     # Convert Ising {-1,+1} formulation into QUBO {0,1}
     S_binary_dict, offset = ising_to_qubo(h_values, J)
