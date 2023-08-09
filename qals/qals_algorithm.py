@@ -5,7 +5,6 @@ import random
 import time
 import sys
 
-from dimod.binary_quadratic_model import BinaryQuadraticModel
 from dimod import ising_to_qubo
 
 from qals.solvers import get_annealing_sampler, annealing
@@ -75,7 +74,7 @@ def generate_weight_matrix(Q, inverse, A):
 def map_back(z, inverse):
     n = len(z)
 
-    z_ret = np.zeros(n, dtype=int)
+    z_ret = np.zeros(n, dtype=float)
     for i in range(n):
         z_ret[i] = int(z[inverse[i]])
 
@@ -104,8 +103,7 @@ def spin_tabu_to_binary(S_spin, n):
             if i == j:
                 h_values[i] = S_spin[i][i]
             else:
-                lw_indx, up_indx = min(i, j), max(i, j)
-                J[lw_indx, up_indx] = J.get((lw_indx, up_indx), 0) + S_spin[i][j]
+                J[i, j] = S_spin[i][j]
 
     # Convert Ising {-1,+1} formulation into QUBO {0,1}
     S_binary_dict, offset = ising_to_qubo(h_values, J)
@@ -118,19 +116,19 @@ def spin_tabu_to_binary(S_spin, n):
 
 def add_to_tabu(S, z_prime, n, tabu_type):
     if tabu_type == 'binary':
-        S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=int) + np.diagflat(z_prime)
+        S = S + np.outer(z_prime, z_prime) - np.identity(n, dtype=float) + np.diagflat(z_prime)
     elif tabu_type == 'spin':
         z_prime_spin = binary_vector_to_spin(z_prime)
-        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=float)
                                     + np.diagflat(z_prime_spin), n)
     elif tabu_type == 'binary_no_diag':
         S = S + np.outer(z_prime, z_prime) - np.diagflat(z_prime)
     elif tabu_type == 'spin_no_diag':
         z_prime_spin = binary_vector_to_spin(z_prime)
-        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int), n)
+        S = S + spin_tabu_to_binary(np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=float), n)
     elif tabu_type == 'hopfield_like':
         z_prime_spin = binary_vector_to_spin(z_prime)
-        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=int)
+        S = S + np.outer(z_prime_spin, z_prime_spin) - np.identity(n, dtype=float)
     elif tabu_type == 'only_diag':
         z_prime_spin = binary_vector_to_spin(z_prime)
         S = S + spin_tabu_to_binary(np.diagflat(z_prime_spin), n)
@@ -214,7 +212,7 @@ def run(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, Q, topology,
             z_prime = z_one
             f_prime, perm = f_one, perm_one
 
-        S = np.zeros(shape=(n, n), dtype=int)
+        S = np.zeros(shape=(n, n), dtype=float)
         if f_one != f_two:
             S = add_to_tabu(S, z_prime, n, tabu_type)
 
