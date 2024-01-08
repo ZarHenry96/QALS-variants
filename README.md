@@ -1,6 +1,6 @@
 # Quantum Annealing Learning Search Variants
 
-This is a forked and modified version of the repository https://github.com/bonom/Quantum-Annealing-for-solving-QUBO-Problems. In detail, this repository provides a refactored version, with bug fixes and minor improvements, of the original Python implementation of QALS. Additionally, the code provided here supports different tabu types:
+This is a forked and modified version of the repository [Quantum Annealing for solving QUBO Problems](https://github.com/bonom/Quantum-Annealing-for-solving-QUBO-Problems). In detail, this repository provides a refactored version, with bug fixes and improvements, of the original Python implementation of QALS presented in "Andrea Bonomi, Thomas De Min, Enrico Zardini, Enrico Blanzieri, Valter Cavecchia, and Davide Pastorello (2022). Quantum annealing learning search implementations. *Quantum Information and Computation* (QIC). https://doi.org/10.26421/QIC22.3-4-1". In particular, the code provided here supports new different tabu types:
 - `binary`: the tabu matrix is defined in the {0, 1} domain;
 - `spin`: the tabu matrix is defined in the {-1, 1} domain and then converted to the {0, 1} domain;
 - `binary_no_diag`: like the `binary` tabu type, but with the tabu matrix diagonal set to 0;
