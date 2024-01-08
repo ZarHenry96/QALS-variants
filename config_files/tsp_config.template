@@ -1,24 +1,24 @@
 {
-  "problem": "TSP",
-  "problem_params": {
-    "tsp_data_file": "${data_file}"
-  },
-  "additional_params": {},
-  "root_out_dir": "results",
-  "random_seed": ${seed},
-  "topology": "pegasus",
-  "simulation": false,
-  "tabu_type": "${tabu_type}",
-  "tabu_log_frequency": 500,
-  "qals_params": {
-    "d_min": 70,
-    "eta": 0.2,
-    "i_max": ${i_max},
-    "k": 5,
-    "lambda_zero": 1.5,
-    "N": 5,
-    "N_max": 100,
-    "p_delta": 0.1,
-    "q": 0.2
-  }
+    "problem": "TSP",
+    "problem_params": {
+        "tsp_data_file": "${data_file}"
+    },
+    "additional_params": {},
+    "root_out_dir": "results",
+    "random_seed": ${seed},
+    "topology": "pegasus",
+    "simulation": false,
+    "tabu_type": "${tabu_type}",
+    "tabu_log_frequency": 500,
+    "qals_params": {
+        "d_min": 70,
+        "eta": 0.2,
+        "i_max": ${i_max},
+        "k": 5,
+        "lambda_zero": 1.5,
+        "N": 5,
+        "N_max": 100,
+        "p_delta": 0.1,
+        "q": 0.2
+    }
 }

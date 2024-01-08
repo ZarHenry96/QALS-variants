@@ -16,13 +16,13 @@ TEMPLATE_CONFIG_FILE="$1"
 DATASET_FILE="$2"
 SEED="$3"
 declare -a TABU_TYPES=(
-  "binary"
-  "spin"
-  "binary_no_diag"
-  "spin_no_diag"
-  "hopfield_like"
-  "only_diag"
-  "no_tabu"
+    "binary"
+    "spin"
+    "binary_no_diag"
+    "spin_no_diag"
+    "hopfield_like"
+    "only_diag"
+    "no_tabu"
 )
 if [ "$#" -eq 4 ]; then
     I_MAX=$(($4))
